@@ -1,0 +1,11 @@
+# Alerting config — copy to alerts.yaml and fill in real values.
+# alerts.yaml is gitignored.
+
+mailgun:
+  apiKey: key-replace-me
+  domain: mg.example.com
+  from: 'Homelab Monitor <noreply@example.com>'
+
+to: alerts@example.com
+enabled: true
+cooldownMinutes: 30

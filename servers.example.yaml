@@ -1,0 +1,20 @@
+# Server registry — copy to servers.yaml and fill in real values.
+# servers.yaml is gitignored; never commit real hosts or API keys.
+#
+# Each entry describes one agent the monitor should poll.
+#   id          stable identifier (used as the key in history + alerts)
+#   displayName human-readable label shown in the dashboard
+#   url         http://<lan-ip>:<port> — the agent's bind address
+#   apiKey      bearer token; must match the agent's API_KEY env var
+#               (generate with: openssl rand -hex 24)
+
+servers:
+  - id: server-a
+    displayName: 'Server A'
+    url: http://0.0.0.0:3005
+    apiKey: replace-me-with-a-long-random-string
+
+  - id: server-b
+    displayName: 'Server B'
+    url: http://0.0.0.0:3005
+    apiKey: replace-me-with-a-long-random-string

@@ -1,0 +1,74 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-bg: #0a0e0a;
+  --color-panel: #0f1410;
+  --color-border: #1e2620;
+  --color-text: #c4c8b8;
+  --color-muted: #6a7060;
+  --color-green: #6ec46e;
+  --color-amber: #d4a85e;
+  --color-red: #d45e5e;
+  --color-cyan: #6ec4c4;
+
+  --font-mono:
+    'JetBrains Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  font-feature-settings: 'liga' 0;
+}
+
+/* Corner-bracketed terminal card. Implemented in CSS rather than inline divs so the
+   markup stays simple. ::before/::after handle TL/BR corners; explicit child elements
+   handle TR/BL corners. */
+.term-card {
+  position: relative;
+}
+.term-card::before,
+.term-card::after,
+.term-card .corner-tr,
+.term-card .corner-bl {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: var(--color-muted);
+  pointer-events: none;
+}
+.term-card::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+.term-card::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 1px solid;
+  border-right: 1px solid;
+}
+.term-card .corner-tr {
+  top: -1px;
+  right: -1px;
+  border-top: 1px solid;
+  border-right: 1px solid;
+}
+.term-card .corner-bl {
+  bottom: -1px;
+  left: -1px;
+  border-bottom: 1px solid;
+  border-left: 1px solid;
+}

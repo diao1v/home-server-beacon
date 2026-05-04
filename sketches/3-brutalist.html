@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Homelab — Brutalist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f3eee5;
+    --paper-2: #ebe5d8;
+    --ink: #141414;
+    --ink-muted: #5a5550;
+    --rule: #141414;
+    --accent: #d4351c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+    padding: 32px 48px 80px;
+    min-height: 100vh;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* Masthead */
+  .masthead {
+    border-top: 4px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 18px 0 10px;
+    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+  }
+  .masthead h1 {
+    margin: 0;
+    font-size: 80px;
+    line-height: 0.85;
+    letter-spacing: -0.05em;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+  .masthead .sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-top: 8px;
+    color: var(--ink-muted);
+  }
+  .masthead .meta {
+    text-align: right;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .masthead .meta b { display: block; font-size: 14px; color: var(--ink); margin-bottom: 4px; letter-spacing: 0.04em; }
+
+  /* Issue line */
+  .issue {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--rule);
+    padding: 8px 0;
+    margin-bottom: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .issue .cell { display: flex; gap: 8px; }
+  .issue .k { color: var(--ink-muted); }
+  .issue .v { color: var(--ink); font-weight: 700; }
+  .issue .v.alert { color: var(--accent); }
+
+  /* Server entries */
+  .entry {
+    border-bottom: 1px solid var(--rule);
+    padding: 28px 0 36px;
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 32px;
+  }
+  .entry .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 0.9;
+    color: var(--ink);
+  }
+
+  .entry .head {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    margin-bottom: 24px;
+    border-bottom: 1px dotted var(--rule);
+    padding-bottom: 12px;
+  }
+  .entry .name {
+    font-size: 32px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    line-height: 1;
+  }
+  .entry .name .id {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink-muted);
+    margin-top: 6px;
+  }
+  .status-line {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+    text-align: right;
+  }
+  .status-line.online   { color: var(--ink); }
+  .status-line.degraded { color: var(--accent); }
+  .status-line .indicator { display: inline-block; width: 12px; height: 12px; vertical-align: -1px; margin-right: 6px; background: var(--ink); }
+  .status-line.degraded .indicator { background: var(--accent); }
+
+  /* Big metrics */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-left: 1px solid var(--rule);
+  }
+  .metrics .m {
+    border-right: 1px solid var(--rule);
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 18px 20px;
+    position: relative;
+  }
+  .metrics .m .lab {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--ink-muted);
+    margin-bottom: 8px;
+  }
+  .metrics .m .num {
+    font-size: 64px;
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+  }
+  .metrics .m .num small {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink-muted);
+  }
+  .metrics .m.alert .num { color: var(--accent); }
+
+  /* Bar made of glyphs (printed feel) */
+  .ladder {
+    margin-top: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    line-height: 1;
+  }
+  .ladder .on { color: var(--ink); }
+  .ladder.alert .on { color: var(--accent); }
+  .ladder .off { color: var(--paper-2); }
+
+  /* Sparkline as barcode */
+  .barcode {
+    margin-top: 14px;
+    height: 28px;
+    display: flex;
+    align-items: end;
+    gap: 1px;
+  }
+  .barcode i {
+    flex: 1;
+    background: var(--ink);
+    display: block;
+  }
+  .barcode.alert i { background: var(--accent); }
+
+  /* Detail tables */
+  .detail {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .detail .col h3 {
+    margin: 0 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--rule);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    display: flex; justify-content: space-between;
+  }
+  .detail table {
+    width: 100%; border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  .detail td {
+    padding: 5px 0;
+    border-bottom: 1px dotted var(--ink-muted);
+  }
+  .detail td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .detail tr.exited td { color: var(--ink-muted); }
+  .detail tr.errored td { color: var(--accent); font-weight: 700; }
+
+  .alert-banner {
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: var(--accent);
+    color: var(--paper);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+  <header class="masthead">
+    <div>
+      <h1>Homelab<br>Monitor</h1>
+      <div class="sub">Operational Report · Issue No. 1287</div>
+    </div>
+    <div class="meta">
+      <b>Mon, 04 May 2026</b>
+      14:32 LOCAL · POLL CYCLE 10s · UPTIME 4D 12H
+    </div>
+  </header>
+
+  <section class="issue">
+    <div class="cell"><span class="k">Servers</span><span class="v">03</span></div>
+    <div class="cell"><span class="k">Online</span><span class="v">02</span></div>
+    <div class="cell"><span class="k">Degraded</span><span class="v alert">01</span></div>
+    <div class="cell"><span class="k">Offline</span><span class="v">00</span></div>
+  </section>
+
+  <!-- 01 -->
+  <article class="entry">
+    <div class="num">01</div>
+    <div>
+      <div class="head">
+        <div class="name">Server A<span class="id">server-a · 192.168.1.10 · agent v0.0.1</span></div>
+        <div class="status-line online"><span class="indicator"></span>STATUS / ONLINE · LAST SEEN 2s</div>
+      </div>
+
+      <div class="metrics">
+        <div class="m">
+          <div class="lab">CPU Load</div>
+          <div class="num">32<small>.4%</small></div>
+          <div class="ladder"><span class="on">██████</span><span class="off">██████████████</span></div>
+        </div>
+        <div class="m">
+          <div class="lab">Memory</div>
+          <div class="num">67<small>.1%</small></div>
+          <div class="ladder"><span class="on">█████████████</span><span class="off">███████</span></div>
+        </div>
+        <div class="m">
+          <div class="lab">Disk</div>
+          <div class="num">78<small>.0%</small></div>
+          <div class="ladder"><span class="on">████████████████</span><span class="off">████</span></div>
+        </div>
+      </div>
+
+      <div class="barcode">
+        <i style="height:30%"></i><i style="height:35%"></i><i style="height:30%"></i><i style="height:45%"></i><i style="height:38%"></i><i style="height:55%"></i><i style="height:45%"></i><i style="height:38%"></i><i style="height:30%"></i><i style="height:38%"></i><i style="height:48%"></i><i style="height:65%"></i><i style="height:55%"></i><i style="height:48%"></i><i style="height:38%"></i><i style="height:30%"></i><i style="height:38%"></i><i style="height:48%"></i><i style="height:60%"></i><i style="height:72%"></i><i style="height:88%"></i><i style="height:75%"></i><i style="height:55%"></i><i style="height:42%"></i><i style="height:32%"></i><i style="height:42%"></i><i style="height:55%"></i><i style="height:68%"></i><i style="height:78%"></i><i style="height:55%"></i>
+      </div>
+
+      <div class="detail">
+        <div class="col">
+          <h3><span>Docker</span><span>14 RUN · 1 EX</span></h3>
+          <table>
+            <tr><td>qbittorrent</td><td class="num">12.4%</td><td class="num">412M</td></tr>
+            <tr><td>vuetorrent-proxy</td><td class="num">0.2%</td><td class="num">38M</td></tr>
+            <tr><td>watchtower</td><td class="num">0.1%</td><td class="num">11M</td></tr>
+            <tr><td>portainer</td><td class="num">1.8%</td><td class="num">68M</td></tr>
+            <tr class="exited"><td>flaresolverr</td><td class="num">—</td><td class="num">EXITED</td></tr>
+          </table>
+        </div>
+        <div class="col">
+          <h3><span>Network</span><span>30m</span></h3>
+          <table>
+            <tr><td>RX cumulative</td><td class="num">1.42 TB</td></tr>
+            <tr><td>TX cumulative</td><td class="num">802 GB</td></tr>
+            <tr><td>RX rate</td><td class="num">4.20 MB/s</td></tr>
+            <tr><td>TX rate</td><td class="num">812 KB/s</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <!-- 02 -->
+  <article class="entry">
+    <div class="num" style="color:var(--accent)">02</div>
+    <div>
+      <div class="head">
+        <div class="name">Server B<span class="id">server-b · 192.168.1.11 · agent v0.0.1</span></div>
+        <div class="status-line degraded"><span class="indicator"></span>STATUS / DEGRADED · 1 OF 3 FAILURES</div>
+      </div>
+
+      <div class="metrics">
+        <div class="m alert">
+          <div class="lab">CPU Load</div>
+          <div class="num">89<small>.2%</small></div>
+          <div class="ladder alert"><span class="on">██████████████████</span><span class="off">██</span></div>
+        </div>
+        <div class="m">
+          <div class="lab">Memory</div>
+          <div class="num">71<small>.0%</small></div>
+          <div class="ladder"><span class="on">██████████████</span><span class="off">██████</span></div>
+        </div>
+        <div class="m">
+          <div class="lab">Disk</div>
+          <div class="num">45<small>.3%</small></div>
+          <div class="ladder"><span class="on">█████████</span><span class="off">███████████</span></div>
+        </div>
+      </div>
+
+      <div class="barcode alert">
+        <i style="height:30%"></i><i style="height:32%"></i><i style="height:34%"></i><i style="height:38%"></i><i style="height:42%"></i><i style="height:48%"></i><i style="height:55%"></i><i style="height:65%"></i><i style="height:72%"></i><i style="height:78%"></i><i style="height:82%"></i><i style="height:85%"></i><i style="height:88%"></i><i style="height:90%"></i><i style="height:90%"></i><i style="height:92%"></i><i style="height:92%"></i><i style="height:94%"></i><i style="height:96%"></i><i style="height:96%"></i><i style="height:96%"></i><i style="height:96%"></i><i style="height:94%"></i><i style="height:92%"></i><i style="height:92%"></i><i style="height:90%"></i><i style="height:88%"></i><i style="height:88%"></i><i style="height:88%"></i><i style="height:88%"></i>
+      </div>
+
+      <div class="alert-banner">⚠ FETCH TIMEOUT · 1 / 3 CONSECUTIVE · WILL MARK OFFLINE AT 3</div>
+
+      <div class="detail">
+        <div class="col">
+          <h3><span>Docker</span><span>8 RUN</span></h3>
+          <table>
+            <tr><td>adguard-home</td><td class="num">82.1%</td><td class="num">194M</td></tr>
+            <tr><td>unbound</td><td class="num">3.4%</td><td class="num">22M</td></tr>
+            <tr><td>watchtower</td><td class="num">0.1%</td><td class="num">11M</td></tr>
+          </table>
+        </div>
+        <div class="col">
+          <h3><span>Network</span><span>30m</span></h3>
+          <table>
+            <tr><td>RX cumulative</td><td class="num">312 GB</td></tr>
+            <tr><td>TX cumulative</td><td class="num">88 GB</td></tr>
+            <tr><td>RX rate</td><td class="num">1.10 MB/s</td></tr>
+            <tr><td>TX rate</td><td class="num">240 KB/s</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <!-- 03 -->
+  <article class="entry">
+    <div class="num">03</div>
+    <div>
+      <div class="head">
+        <div class="name">Server C<span class="id">server-c · 192.168.1.12 · agent v0.0.1</span></div>
+        <div class="status-line online"><span class="indicator"></span>STATUS / ONLINE · LAST SEEN 1s</div>
+      </div>
+
+      <div class="metrics">
+        <div class="m">
+          <div class="lab">CPU Load</div>
+          <div class="num">45<small>.0%</small></div>
+          <div class="ladder"><span class="on">█████████</span><span class="off">███████████</span></div>
+        </div>
+        <div class="m">
+          <div class="lab">Memory</div>
+          <div class="num">52<small>.0%</small></div>
+          <div class="ladder"><span class="on">██████████</span><span class="off">██████████</span></div>
+        </div>
+        <div class="m">
+          <div class="lab">Disk</div>
+          <div class="num">61<small>.2%</small></div>
+          <div class="ladder"><span class="on">████████████</span><span class="off">████████</span></div>
+        </div>
+      </div>
+
+      <div class="barcode">
+        <i style="height:42%"></i><i style="height:48%"></i><i style="height:42%"></i><i style="height:45%"></i><i style="height:55%"></i><i style="height:50%"></i><i style="height:42%"></i><i style="height:50%"></i><i style="height:55%"></i><i style="height:65%"></i><i style="height:55%"></i><i style="height:48%"></i><i style="height:42%"></i><i style="height:50%"></i><i style="height:55%"></i><i style="height:65%"></i><i style="height:75%"></i><i style="height:65%"></i><i style="height:58%"></i><i style="height:48%"></i><i style="height:42%"></i><i style="height:50%"></i><i style="height:55%"></i><i style="height:62%"></i><i style="height:72%"></i><i style="height:65%"></i><i style="height:55%"></i><i style="height:48%"></i><i style="height:55%"></i><i style="height:55%"></i>
+      </div>
+
+      <div class="detail">
+        <div class="col">
+          <h3><span>Docker</span><span>6 RUN</span></h3>
+          <table>
+            <tr><td>plex</td><td class="num">28.4%</td><td class="num">1.2G</td></tr>
+            <tr><td>jellyfin</td><td class="num">8.2%</td><td class="num">412M</td></tr>
+            <tr><td>nextcloud</td><td class="num">3.1%</td><td class="num">312M</td></tr>
+          </table>
+        </div>
+        <div class="col">
+          <h3><span>PM2</span><span>3 ON · 1 ERR</span></h3>
+          <table>
+            <tr><td>api-gateway</td><td class="num">2.1%</td><td class="num">68M</td></tr>
+            <tr><td>scheduler</td><td class="num">0.4%</td><td class="num">42M</td></tr>
+            <tr class="errored"><td>scraper-worker</td><td class="num">—</td><td class="num">ERRORED</td></tr>
+            <tr><td>image-resizer</td><td class="num">1.8%</td><td class="num">156M</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <footer style="margin-top: 32px; padding-top: 8px; border-top: 4px solid var(--rule); font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; display:flex; justify-content:space-between; color:var(--ink-muted)">
+    <span>End of report</span>
+    <span>Generated by homelab-monitor v0.0.1</span>
+  </footer>
+
+</body>
+</html>
