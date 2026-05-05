@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Footer } from './components/Footer';
+import { FleetSummary } from './components/FleetSummary';
 import { Header } from './components/Header';
 import { ServerCard } from './components/ServerCard';
 import { fetchAllHistory } from './lib/history';
@@ -23,6 +23,7 @@ export function App() {
   return (
     <div className="min-h-full px-6 py-4 pb-8">
       <Header />
+      <FleetSummary />
       <main className="grid grid-cols-[repeat(auto-fill,minmax(380px,1fr))] gap-3">
         {servers.length === 0 ? (
           <div className="text-muted text-xs col-span-full">waiting for first poll cycle…</div>
@@ -30,7 +31,6 @@ export function App() {
           servers.map((s) => <ServerCard key={s.id} server={s} />)
         )}
       </main>
-      <Footer />
     </div>
   );
 }

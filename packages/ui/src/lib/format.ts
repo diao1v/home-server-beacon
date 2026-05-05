@@ -1,4 +1,41 @@
+import type { NetworkInfo, ServerStateView } from '@homelab/shared';
+
+export type DisplayStatus = 'waiting' | 'online' | 'degraded' | 'offline';
+
+/**
+ * "Waiting" is a UI-only derived state for servers that have never reported —
+ * registered in servers.yaml but no successful poll yet. Distinct from "offline"
+ * (which means we had data and lost it).
+ */
+export function deriveStatus(s: ServerStateView): DisplayStatus {
+  if (s.status === 'offline' && s.lastSeen === null) return 'waiting';
+  return s.status;
+}
+
 const BLOCKS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'] as const;
+
+const SKIP_IFACE_PREFIXES = ['lo', 'docker', 'br-', 'veth'] as const;
+
+/**
+ * Pick the most likely WAN-facing interface. Skips loopback / docker bridges /
+ * veth pairs, then prefers the one with the most cumulative rx (typically the
+ * physical NIC carrying the most traffic).
+ */
+export function pickPrimaryNetwork(network: NetworkInfo[]): NetworkInfo | null {
+  const real = network.filter(
+    (n) => !SKIP_IFACE_PREFIXES.some((p) => n.iface.startsWith(p)),
+  );
+  if (real.length === 0) return null;
+  return real.reduce((max, n) => (n.rxBytes > max.rxBytes ? n : max));
+}
+
+export function fmtRate(bytesPerSec: number): string {
+  if (!Number.isFinite(bytesPerSec) || bytesPerSec <= 0) return '0';
+  if (bytesPerSec < 1024) return `${Math.round(bytesPerSec)}B/s`;
+  if (bytesPerSec < 1024 * 1024) return `${(bytesPerSec / 1024).toFixed(1)}K/s`;
+  if (bytesPerSec < 1024 * 1024 * 1024) return `${(bytesPerSec / 1024 / 1024).toFixed(1)}M/s`;
+  return `${(bytesPerSec / 1024 / 1024 / 1024).toFixed(2)}G/s`;
+}
 
 export type BarColor = 'green' | 'amber' | 'red' | 'muted';
 
