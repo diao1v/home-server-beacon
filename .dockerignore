@@ -1,0 +1,26 @@
+.git
+.github
+.vscode
+.idea
+
+# Node / pnpm
+node_modules
+**/node_modules
+**/dist
+*.tsbuildinfo
+
+# Local config / DB
+servers.yaml
+alerts.yaml
+data
+*.sqlite*
+.env
+.env.*
+
+# Build artifacts that shouldn't enter the image
+*.log
+.DS_Store
+
+# Plan / sketches not needed at runtime
+plan
+sketches

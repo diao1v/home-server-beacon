@@ -1,0 +1,48 @@
+# Per-host agent deploy. Run from this directory (packages/agent/).
+#
+# First-time setup on a host:
+#   git clone https://github.com/<you>/home-server-beacon.git ~/homelab
+#   cd ~/homelab/packages/agent
+#   cp docker-compose.example.yml docker-compose.yml
+#   # edit docker-compose.yml — set SERVER_ID, API_KEY, BIND_HOST
+#   docker compose up -d --build
+#
+# Updating after pushing changes:
+#   cd ~/homelab && git pull
+#   cd packages/agent && docker compose up -d --build
+#
+# network_mode: host + pid: host gives the container the host's real network
+# stack and process table — required for accurate CPU / mem / network / uptime.
+
+services:
+  agent:
+    build:
+      # Build context is the repo root because the Dockerfile reads
+      # pnpm-workspace.yaml and the shared package alongside the agent.
+      context: ../..
+      dockerfile: packages/agent/Dockerfile
+    image: homelab-agent:latest
+    container_name: homelab-agent
+    restart: unless-stopped
+
+    network_mode: host
+    pid: host
+
+    volumes:
+      # Docker collector reads container stats from the host's docker daemon.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # /sys exposes thermal sensors so the temperature collector works.
+      - /sys:/host/sys:ro
+      # /proc is automatically the host's /proc thanks to pid: host.
+
+    environment:
+      # ---- required ----
+      SERVER_ID: server-a              # must match an entry in the monitor's servers.yaml
+      API_KEY: replace-me-with-a-long-random-string
+      BIND_HOST: 192.168.1.10          # this host's LAN IP — agent binds only here
+      # ---- optional ----
+      PORT: 3005
+      ENABLE_DOCKER: "true"
+      ENABLE_PM2: "false"
+      LOG_LEVEL: info
+      SAMPLE_INTERVAL_MS: 5000

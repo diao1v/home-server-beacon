@@ -1,0 +1,46 @@
+# Monitor deploy on the central host. Run from this directory (packages/monitor/).
+#
+# First-time setup on the host:
+#   git clone https://github.com/<you>/home-server-beacon.git ~/homelab
+#   cd ~/homelab
+#   cp servers.example.yaml servers.yaml      # edit with real agent IPs + API keys
+#   cp alerts.example.yaml alerts.yaml        # edit with Mailgun creds (or skip — alerts optional)
+#   cd packages/monitor
+#   cp docker-compose.example.yml docker-compose.yml
+#   docker compose up -d --build
+#
+# Updating after pushing changes:
+#   cd ~/homelab && git pull
+#   cd packages/monitor && docker compose up -d --build
+#
+# host networking lets the monitor be reachable on every interface the host
+# exposes — including tailscale0 — so you can hit the dashboard from anywhere
+# on your tailnet.
+
+services:
+  monitor:
+    build:
+      context: ../..
+      dockerfile: packages/monitor/Dockerfile
+    image: homelab-monitor:latest
+    container_name: homelab-monitor
+    restart: unless-stopped
+
+    network_mode: host
+
+    volumes:
+      # SQLite history — persists across rebuilds. Lives at packages/monitor/data on the host.
+      - ./data:/data
+      # Configs sit in the repo root (gitignored). Mount them read-only into the container.
+      - ../../servers.yaml:/etc/homelab/servers.yaml:ro
+      # alerts.yaml is optional. If you don't want alerting, comment this line out.
+      - ../../alerts.yaml:/etc/homelab/alerts.yaml:ro
+
+    environment:
+      PORT: 8080
+      BIND_HOST: 0.0.0.0           # listen on every interface (LAN + Tailscale)
+      POLL_INTERVAL_MS: 10000
+      POLL_TIMEOUT_MS: 5000
+      HISTORY_RETENTION_HOURS: 24
+      LOG_LEVEL: info
+      # CORS_ALLOWED_ORIGINS: ""   # set when the UI moves to Cloudflare Pages
