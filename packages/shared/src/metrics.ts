@@ -60,6 +60,11 @@ export const DockerContainer = z.object({
     used: z.number(),
     limit: z.number(),
   }),
+  // Disk usage. `rw` = bytes written to this container's writable layer (unique per
+  // container). `total` = `rw` + the image's read-only layers (the image is shared
+  // across all containers using it, so total double-counts when summed).
+  sizeRw: z.number(),
+  sizeTotal: z.number(),
 });
 export type DockerContainer = z.infer<typeof DockerContainer>;
 

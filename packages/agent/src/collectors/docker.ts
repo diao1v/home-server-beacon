@@ -77,6 +77,8 @@ export async function collectDocker(): Promise<DockerMetrics> {
         used: s ? realMemoryUsed(s) : 0,
         limit: s?.memory_stats.limit ?? 0,
       },
+      sizeRw: c.SizeRw ?? 0,
+      sizeTotal: c.SizeRootFs ?? 0,
     };
   });
 

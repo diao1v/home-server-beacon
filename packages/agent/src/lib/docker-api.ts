@@ -20,6 +20,9 @@ interface DockerContainerSummary {
   Image: string;
   State: string;
   Status: string;
+  // Only populated when ?size=true is passed.
+  SizeRw?: number;
+  SizeRootFs?: number;
 }
 
 export interface DockerStats {
@@ -77,8 +80,10 @@ function get<T>(path: string): Promise<T> {
 }
 
 export function listRunningContainers(): Promise<DockerContainerSummary[]> {
-  // /containers/json with no query returns running containers only.
-  return get<DockerContainerSummary[]>('/containers/json');
+  // size=true asks Docker to compute SizeRw + SizeRootFs per container. Adds a
+  // small amount of work on the daemon (it walks the writable layer) but is
+  // fine for homelab-scale fleets.
+  return get<DockerContainerSummary[]>('/containers/json?size=true');
 }
 
 export function containerStats(id: string): Promise<DockerStats> {

@@ -7,7 +7,22 @@ function byLoad(a: DockerContainer, b: DockerContainer): number {
   return (b.memory.used ?? 0) - (a.memory.used ?? 0);
 }
 
-const ROW_GRID = 'grid grid-cols-[12px_1fr_60px_60px] gap-2';
+const ROW_GRID = 'grid grid-cols-[12px_1fr_44px_56px_56px] gap-2';
+
+function fmtSize(bytes: number): string {
+  if (bytes <= 0) return '—';
+  return fmtBytes(bytes);
+}
+
+function sizeTooltip(c: DockerContainer): string {
+  // Helps the user understand what each delete action would free.
+  return [
+    `Total: ${fmtSize(c.sizeTotal)} (image + writable)`,
+    `Writable layer: ${fmtSize(c.sizeRw)} — freed by 'docker rm'`,
+    `Image: ${fmtSize(Math.max(0, c.sizeTotal - c.sizeRw))} — freed by 'docker rmi' (if no other container uses it)`,
+    `Volumes are not counted here.`,
+  ].join('\n');
+}
 
 export function DockerSection({ containers }: { containers: DockerContainer[] }) {
   if (containers.length === 0) return null;
@@ -28,6 +43,7 @@ export function DockerSection({ containers }: { containers: DockerContainer[] })
         <span>name</span>
         <span className="text-right">cpu</span>
         <span className="text-right">ram</span>
+        <span className="text-right">size</span>
       </div>
 
       <ul className="space-y-px">
@@ -44,6 +60,9 @@ export function DockerSection({ containers }: { containers: DockerContainer[] })
               <span className="text-right text-muted">{fmtPercent(c.cpuPercent)}</span>
               <span className="text-right text-muted">
                 {isRunning ? fmtBytes(c.memory.used) : c.status}
+              </span>
+              <span className="text-right text-muted" title={sizeTooltip(c)}>
+                {fmtSize(c.sizeTotal)}
               </span>
             </li>
           );
