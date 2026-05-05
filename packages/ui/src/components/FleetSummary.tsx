@@ -53,9 +53,9 @@ export function FleetSummary() {
   const hotDsk = findMaxBy(servers, (s) => s.latestSnapshot?.os.disks[0]?.usedPercent);
 
   return (
-    <section className="bg-panel border border-border px-3.5 py-2 mb-3 grid grid-cols-[64px_1fr] gap-x-3 gap-y-1 text-xs">
-      <div className="text-cyan tracking-widest self-center">[FLEET]</div>
-      <div className="flex gap-x-4 flex-wrap items-center">
+    <section className="bg-panel border border-border px-3.5 py-2 mb-3 text-xs">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="text-cyan tracking-widest">[FLEET]</span>
         <span>
           <span className="text-text">{servers.length}</span>{' '}
           <span className="text-muted">servers</span>
@@ -69,8 +69,7 @@ export function FleetSummary() {
         </span>
       </div>
 
-      <div />
-      <div className="flex gap-x-6 flex-wrap text-muted">
+      <div className="flex flex-wrap gap-x-6 gap-y-1 mt-1 text-muted">
         <HighlightCell label="cpu" h={hotCpu} />
         <HighlightCell label="ram" h={hotRam} />
         <HighlightCell label="disk" h={hotDsk} />

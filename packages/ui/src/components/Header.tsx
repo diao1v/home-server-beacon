@@ -28,11 +28,11 @@ export function Header() {
   };
 
   return (
-    <header className="border-b border-border pb-2 mb-4 flex justify-between items-baseline text-muted text-xs">
+    <header className="border-b border-border pb-2 mb-4 flex flex-wrap justify-between items-baseline gap-x-3 gap-y-1 text-muted text-xs">
       <div className="text-text tracking-wider">
         <span className="text-green">$</span> homelab-monitor v0.0.1
       </div>
-      <div className="flex items-baseline gap-3">
+      <div className="flex items-baseline gap-3 flex-wrap">
         <span>
           ws{' '}
           <span className={`${STATUS_COLOR[wsStatus] ?? 'text-text'} font-medium`}>
