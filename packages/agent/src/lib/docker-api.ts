@@ -7,7 +7,9 @@ import { request } from 'node:http';
  */
 
 const SOCKET_PATH = '/var/run/docker.sock';
-const API_VERSION = 'v1.43';
+// Use unversioned paths — Docker accepts requests without a version prefix and
+// dispatches to whatever API version the daemon supports. Hardcoding e.g.
+// /v1.43 breaks against daemons older than Docker 24.0.
 const DEFAULT_TIMEOUT_MS = 5000;
 // /containers/json?size=true forces the daemon to walk each writable layer to
 // compute SizeRw — slow on hosts with big writeable layers. Give it more room.
@@ -47,7 +49,7 @@ function get<T>(path: string, timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<T
     const req = request(
       {
         socketPath: SOCKET_PATH,
-        path: `/${API_VERSION}${path}`,
+        path,
         method: 'GET',
         timeout: timeoutMs,
       },
