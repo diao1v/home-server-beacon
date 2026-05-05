@@ -27,7 +27,7 @@ if [[ $ROLE == "agent" ]]; then
     pnpm install --frozen-lockfile --filter '@homelab/shared' --filter '@homelab/agent'
     pnpm --filter @homelab/shared build
     pnpm --filter @homelab/agent build
-    pm2 reload homelab-agent
+    pm2 reload home-server-beacon
   else
     echo "==> Updating agent (Docker mode)"
     cd "$REPO_ROOT/packages/agent"

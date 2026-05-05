@@ -135,11 +135,11 @@ Then on the monitor host:
   cd ~/homelab && git pull && cd packages/monitor && docker compose restart
 
 Useful PM2 commands:
-  pm2 logs homelab-agent       # tail logs
+  pm2 logs home-server-beacon       # tail logs
   pm2 monit                    # live process info
-  pm2 reload homelab-agent     # zero-downtime restart after code change
-  pm2 stop homelab-agent       # stop
-  pm2 delete homelab-agent     # remove from PM2
+  pm2 reload home-server-beacon     # zero-downtime restart after code change
+  pm2 stop home-server-beacon       # stop
+  pm2 delete home-server-beacon     # remove from PM2
 
 If this host had a Docker-mode agent before, remove it:
   cd ~/homelab/packages/agent && docker compose down

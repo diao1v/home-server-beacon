@@ -64,7 +64,7 @@ If auto-detect picks the wrong interface, pass the IP as the 3rd argument:
 
 To make PM2 restart the agent on boot, run `pm2 startup` once and follow the printed instruction.
 
-Per-host agent env is in `packages/agent/agent.env` (gitignored). Edit it directly if you ever need to flip `ENABLE_DOCKER` or `ENABLE_PM2`, then `pm2 reload homelab-agent`.
+Per-host agent env is in `packages/agent/agent.env` (gitignored). Edit it directly if you ever need to flip `ENABLE_DOCKER` or `ENABLE_PM2`, then `pm2 reload home-server-beacon`.
 
 > An older Docker-mode setup script (`scripts/setup-agent.sh`) is still in the repo for reference, but PM2 is the recommended path. To migrate a Docker-mode host: `cd ~/homelab/packages/agent && docker compose down`, then run `setup-agent-pm2.sh`.
 
