@@ -49,22 +49,24 @@ Strategy: every host clones the repo, runs `docker compose up -d --build` locall
 
 ```bash
 git clone https://github.com/<you>/home-server-beacon.git ~/homelab
-cd ~/homelab/packages/agent
-cp docker-compose.example.yml docker-compose.yml
-# edit docker-compose.yml — set SERVER_ID, API_KEY, BIND_HOST
-docker compose up -d --build
+~/homelab/scripts/setup-agent.sh server-a "Server A"
 ```
 
-The `--build` flag builds the agent image from local source on first run. Subsequent runs reuse the cached image until source changes.
+The script auto-detects the host's LAN IP, generates a fresh API key, patches the compose file, and runs `docker compose up -d --build`. It prints a `servers.yaml` snippet for you to paste on the monitor.
+
+If auto-detect picks the wrong interface, pass the IP as the 3rd argument:
+
+```bash
+~/homelab/scripts/setup-agent.sh server-a "Server A" 192.168.1.10
+```
 
 ### On the central monitor host
 
 ```bash
 git clone https://github.com/<you>/home-server-beacon.git ~/homelab
 cd ~/homelab
-cp servers.example.yaml servers.yaml          # add real agents (must match SERVER_ID + API_KEY)
-cp alerts.example.yaml alerts.yaml            # optional — skip to disable email alerts
-
+cp servers.example.yaml servers.yaml         # add the entries setup-agent printed
+cp alerts.example.yaml alerts.yaml           # optional — skip to disable email alerts
 cd packages/monitor
 cp docker-compose.example.yml docker-compose.yml
 docker compose up -d --build
@@ -72,29 +74,16 @@ docker compose up -d --build
 
 Dashboard now serves at `http://<this-host>:8080` on the LAN and over Tailscale.
 
-### Helper scripts
+### Updating after a `git push`
 
-For more than one or two hosts, two scripts under `scripts/` automate the SSH-and-shell-around step.
-
-```bash
-# Bootstrap a brand-new agent host (auto-detects LAN IP, generates API key)
-scripts/deploy-agent.sh user@10.0.0.39 server-a "Server A"
-# → prints the snippet to paste into the monitor's servers.yaml
-
-# Refresh an already-deployed host after a `git push`
-scripts/update-host.sh user@10.0.0.39 agent
-scripts/update-host.sh user@<monitor-host> monitor
-```
-
-The host's user must have passwordless `sudo`-free Docker access (member of the `docker` group). Both scripts use only `git`, `ssh`, `docker compose`, and one `openssl rand` call locally — no extra dependencies.
-
-### Updating after a `git push` (without the script)
+On each host:
 
 ```bash
-cd ~/homelab && git pull
-# on each host that needs the change:
-cd packages/{agent,monitor} && docker compose up -d --build
+~/homelab/scripts/update.sh agent      # on an agent host
+~/homelab/scripts/update.sh monitor    # on the monitor host
 ```
+
+That just runs `git pull --ff-only` and `docker compose up -d --build`. Or do those two commands by hand if you prefer.
 
 ### Notes
 
