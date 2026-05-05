@@ -47,18 +47,26 @@ Strategy: every host clones the repo, runs `docker compose up -d --build` locall
 
 ### On each agent host (server-a, server-b, server-c, …)
 
+The agent runs **natively on the host under PM2** — not in a container — so it has direct access to host disks, the host process table, and thermal sensors. (Earlier versions ran the agent in Docker; that fought with mount/pid namespaces. The PM2 path is much cleaner.)
+
 ```bash
 git clone https://github.com/<you>/home-server-beacon.git ~/homelab
-~/homelab/scripts/setup-agent.sh server-a "Server A"
+~/homelab/scripts/setup-agent-pm2.sh server-a "Server A"
 ```
 
-The script auto-detects the host's LAN IP, generates a fresh API key, patches the compose file, and runs `docker compose up -d --build`. It prints a `servers.yaml` snippet for you to paste on the monitor.
+The script verifies Node 24+, pnpm, and PM2 (installs PM2 globally if missing), auto-detects the LAN IP, generates an API key, builds, and starts the agent under PM2. It prints a `servers.yaml` snippet for the monitor.
 
 If auto-detect picks the wrong interface, pass the IP as the 3rd argument:
 
 ```bash
-~/homelab/scripts/setup-agent.sh server-a "Server A" 192.168.1.10
+~/homelab/scripts/setup-agent-pm2.sh server-a "Server A" 192.168.1.10
 ```
+
+To make PM2 restart the agent on boot, run `pm2 startup` once and follow the printed instruction.
+
+Per-host agent env is in `packages/agent/agent.env` (gitignored). Edit it directly if you ever need to flip `ENABLE_DOCKER` or `ENABLE_PM2`, then `pm2 reload homelab-agent`.
+
+> An older Docker-mode setup script (`scripts/setup-agent.sh`) is still in the repo for reference, but PM2 is the recommended path. To migrate a Docker-mode host: `cd ~/homelab/packages/agent && docker compose down`, then run `setup-agent-pm2.sh`.
 
 ### On the central monitor host
 

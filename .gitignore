@@ -28,3 +28,7 @@ logs/
 .vscode/
 .idea/
 *.swp
+
+# Per-host agent env (PM2 mode); contains the API key
+agent.env
+
