@@ -14,11 +14,12 @@ COPY packages/shared/package.json ./packages/shared/
 COPY packages/monitor/package.json ./packages/monitor/
 COPY packages/ui/package.json ./packages/ui/
 
-# Install all deps. better-sqlite3 ships prebuilt binaries for arm64/x64 + Node 24,
-# so no compilation step is required for typical hosts. If you ever target a less
-# common arch, uncomment the apt-get block below.
-# RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ \
-#     && rm -rf /var/lib/apt/lists/*
+# better-sqlite3 doesn't ship a Node 24 ARM64 prebuild yet, so node-gyp compiles
+# from source on first install. Needs python3 + a C++ toolchain.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN pnpm install --frozen-lockfile
 
 # Build server + UI bundle
