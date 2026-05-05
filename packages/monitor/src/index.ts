@@ -4,6 +4,7 @@ import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { loadAlertsConfig, startAlerts } from './alerts/index.js';
 import { loadServersConfig } from './config.js';
 import { buildDisplayPayload, computeDisplayEtag } from './display.js';
 import { env } from './env.js';
@@ -81,6 +82,13 @@ if (uiDistAbs && existsSync(uiDistAbs)) {
     { path: uiDistAbs, configured: env.UI_DIST_PATH },
     'UI_DIST_PATH set but directory not found; UI not served',
   );
+}
+
+// Subscribe alerts BEFORE starting the poller so we don't miss the first
+// state transitions during startup.
+const alertsConfig = loadAlertsConfig();
+if (alertsConfig) {
+  startAlerts(alertsConfig);
 }
 
 startCleanupJob();
