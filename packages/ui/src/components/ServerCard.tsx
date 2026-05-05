@@ -1,5 +1,5 @@
 import type { ServerStateView } from '@homelab/shared';
-import { deriveStatus, fmtAgo, fmtRate, pickPrimaryNetwork } from '../lib/format';
+import { deriveStatus, fmtAgo, fmtRate, fmtTemp, pickPrimaryNetwork } from '../lib/format';
 import { useStore } from '../store';
 import { DockerSection } from './DockerSection';
 import { Pm2Section } from './Pm2Section';
@@ -54,6 +54,16 @@ export function ServerCard({ server }: { server: ServerStateView }) {
           <ResourceBar label="CPU" value={snap?.os.cpuPercent ?? null} />
           <ResourceBar label="RAM" value={snap?.os.memory.usedPercent ?? null} />
           <ResourceBar label="DSK" value={primaryDisk?.usedPercent ?? null} />
+          {typeof snap?.os.temperature === 'number' && (
+            <ResourceBar
+              label="TMP"
+              value={snap.os.temperature}
+              format={fmtTemp}
+              // Map raw °C to bar fill: 30°C empty, 90°C full. Aligns the existing
+              // green/amber/red thresholds (60/85) to ~66°C amber, ~81°C red.
+              barValue={Math.max(0, Math.min(100, ((snap.os.temperature - 30) / 60) * 100))}
+            />
+          )}
 
           {primaryNet && (
             <div className="grid grid-cols-[36px_1fr_auto] gap-2 items-center text-xs my-1">

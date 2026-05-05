@@ -1,24 +1,35 @@
 import type { ServerStateView } from '@homelab/shared';
-import { fmtRate, pickPrimaryNetwork } from '../lib/format';
 import { useStore } from '../store';
 
-function avg(values: ReadonlyArray<number | null | undefined>): number | null {
-  const valid = values.filter((v): v is number => typeof v === 'number' && !Number.isNaN(v));
-  if (valid.length === 0) return null;
-  return valid.reduce((a, b) => a + b, 0) / valid.length;
+interface Highlight {
+  name: string;
+  value: number;
 }
 
-function fleetRates(servers: ServerStateView[]): { rx: number; tx: number } {
-  let rx = 0;
-  let tx = 0;
+function findHottestCpu(servers: ServerStateView[]): Highlight | null {
+  let best: Highlight | null = null;
   for (const s of servers) {
-    if (!s.latestSnapshot) continue;
-    const p = pickPrimaryNetwork(s.latestSnapshot.os.network);
-    if (!p) continue;
-    rx += p.rxRate;
-    tx += p.txRate;
+    const cpu = s.latestSnapshot?.os.cpuPercent;
+    if (typeof cpu !== 'number' || Number.isNaN(cpu)) continue;
+    if (!best || cpu > best.value) best = { name: s.displayName, value: cpu };
   }
-  return { rx, tx };
+  return best;
+}
+
+function findFullestDisk(servers: ServerStateView[]): Highlight | null {
+  let best: Highlight | null = null;
+  for (const s of servers) {
+    const disk = s.latestSnapshot?.os.disks[0]?.usedPercent;
+    if (typeof disk !== 'number' || Number.isNaN(disk)) continue;
+    if (!best || disk > best.value) best = { name: s.displayName, value: disk };
+  }
+  return best;
+}
+
+function colorFor(percent: number): string {
+  if (percent > 85) return 'text-red';
+  if (percent > 60) return 'text-amber';
+  return 'text-green';
 }
 
 export function FleetSummary() {
@@ -28,9 +39,8 @@ export function FleetSummary() {
   const counts = { online: 0, degraded: 0, offline: 0 };
   for (const s of servers) counts[s.status] += 1;
 
-  const cpu = avg(servers.map((s) => s.latestSnapshot?.os.cpuPercent));
-  const ram = avg(servers.map((s) => s.latestSnapshot?.os.memory.usedPercent));
-  const net = fleetRates(servers);
+  const hottest = findHottestCpu(servers);
+  const fullest = findFullestDisk(servers);
 
   return (
     <section className="bg-panel border border-border px-3.5 py-2 mb-3 grid grid-cols-[64px_1fr] gap-x-3 gap-y-1 text-xs">
@@ -50,19 +60,28 @@ export function FleetSummary() {
       </div>
 
       <div />
-      <div className="flex gap-x-4 flex-wrap text-muted">
+      <div className="flex gap-x-6 flex-wrap text-muted">
         <span>
-          CPU <span className="text-text">{cpu === null ? '—' : `${cpu.toFixed(1)}%`}</span>
+          hot:{' '}
+          {hottest ? (
+            <>
+              <span className="text-text">{hottest.name}</span>{' '}
+              <span className={colorFor(hottest.value)}>{hottest.value.toFixed(1)}%</span>
+            </>
+          ) : (
+            <span className="text-muted">—</span>
+          )}
         </span>
         <span>
-          RAM <span className="text-text">{ram === null ? '—' : `${ram.toFixed(1)}%`}</span>
-        </span>
-        <span>
-          NET <span className="text-cyan">↓</span>{' '}
-          <span className="text-text">{fmtRate(net.rx)}</span>
-          <span className="text-muted"> · </span>
-          <span className="text-cyan">↑</span>{' '}
-          <span className="text-text">{fmtRate(net.tx)}</span>
+          disk:{' '}
+          {fullest ? (
+            <>
+              <span className="text-text">{fullest.name}</span>{' '}
+              <span className={colorFor(fullest.value)}>{fullest.value.toFixed(1)}%</span>
+            </>
+          ) : (
+            <span className="text-muted">—</span>
+          )}
         </span>
       </div>
     </section>

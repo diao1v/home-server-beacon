@@ -93,6 +93,11 @@ export function fmtPercent(p: number | null): string {
   return `${p.toFixed(1)}%`;
 }
 
+export function fmtTemp(t: number | null): string {
+  if (t === null || Number.isNaN(t)) return '—';
+  return `${Math.round(t)}°C`;
+}
+
 export function fmtBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '—';
   const units = ['B', 'K', 'M', 'G', 'T'];

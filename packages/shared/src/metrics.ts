@@ -22,6 +22,9 @@ export type NetworkInfo = z.infer<typeof NetworkInfo>;
 
 export const OsMetrics = z.object({
   cpuPercent: NullableNumber,
+  // CPU package temperature in °C. Null when the platform/agent has no thermal sensor
+  // accessible (common on Apple Silicon without elevated permissions).
+  temperature: NullableNumber,
   loadAvg: z.tuple([z.number(), z.number(), z.number()]),
   memory: z.object({
     total: z.number(),

@@ -85,16 +85,20 @@ async function getMacosStorageDisks(): Promise<DiskInfo[] | null> {
 }
 
 export async function collectOs(): Promise<OsMetrics> {
-  const [load, mem, fs, net, time, macosDisks] = await Promise.all([
+  const [load, mem, fs, net, time, temp, macosDisks] = await Promise.all([
     si.currentLoad(),
     si.mem(),
     si.fsSize(),
     si.networkStats(),
     si.time(),
+    si.cpuTemperature(),
     IS_MACOS ? getMacosStorageDisks() : Promise.resolve(null),
   ]);
 
   const cpuPercent = Number.isFinite(load.currentLoad) ? load.currentLoad : null;
+  // si returns -1 (or 0 on some platforms) when no sensor is available.
+  const temperature =
+    typeof temp.main === 'number' && temp.main > 0 ? temp.main : null;
 
   const used = computeUsedMemory(mem);
   const free = Math.max(0, mem.total - used);
@@ -117,6 +121,7 @@ export async function collectOs(): Promise<OsMetrics> {
 
   return {
     cpuPercent,
+    temperature,
     loadAvg: [m1 ?? 0, m5 ?? 0, m15 ?? 0],
     memory: {
       total: mem.total,
