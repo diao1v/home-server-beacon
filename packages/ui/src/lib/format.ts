@@ -30,11 +30,8 @@ export function pickPrimaryNetwork(network: NetworkInfo[]): NetworkInfo | null {
 }
 
 export function fmtRate(bytesPerSec: number): string {
-  if (!Number.isFinite(bytesPerSec) || bytesPerSec <= 0) return '0';
-  if (bytesPerSec < 1024) return `${Math.round(bytesPerSec)}B/s`;
-  if (bytesPerSec < 1024 * 1024) return `${(bytesPerSec / 1024).toFixed(1)}K/s`;
-  if (bytesPerSec < 1024 * 1024 * 1024) return `${(bytesPerSec / 1024 / 1024).toFixed(1)}M/s`;
-  return `${(bytesPerSec / 1024 / 1024 / 1024).toFixed(2)}G/s`;
+  if (!Number.isFinite(bytesPerSec) || bytesPerSec < 0) return '0.00M/s';
+  return `${(bytesPerSec / 1024 / 1024).toFixed(2)}M/s`;
 }
 
 export type BarColor = 'green' | 'amber' | 'red' | 'muted';

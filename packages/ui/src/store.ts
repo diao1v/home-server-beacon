@@ -10,7 +10,7 @@ export interface HistoryPoint {
   disk: number | null;
 }
 
-const HISTORY_CAP = 360; // ~1h at a 10s poll interval
+const HISTORY_CAP = 4500; // ~12.5h at a 10s poll interval (12h sparkline + headroom)
 
 interface MonitorStore {
   servers: ServerStateView[];

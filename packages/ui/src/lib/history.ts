@@ -7,7 +7,7 @@ interface HistoryResponse {
   rows: HistoryPoint[];
 }
 
-export async function fetchHistoryFor(serverId: string, minutes = 30): Promise<void> {
+export async function fetchHistoryFor(serverId: string, minutes = 720): Promise<void> {
   try {
     const res = await fetchJson<HistoryResponse>(`/api/history/${serverId}?minutes=${minutes}`);
     useStore.getState().setHistory(serverId, res.rows);
@@ -16,7 +16,7 @@ export async function fetchHistoryFor(serverId: string, minutes = 30): Promise<v
   }
 }
 
-export async function fetchAllHistory(minutes = 30): Promise<void> {
+export async function fetchAllHistory(minutes = 720): Promise<void> {
   const ids = useStore.getState().servers.map((s) => s.id);
   await Promise.all(ids.map((id) => fetchHistoryFor(id, minutes)));
 }

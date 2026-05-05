@@ -30,8 +30,6 @@ function tempBarPercent(c: number): number {
 
 export function ServerCard({ server }: { server: ServerStateView }) {
   const history = useStore((s) => s.history[server.id]) ?? [];
-  const cpuValues = history.map((p) => p.cpu);
-  const ramValues = history.map((p) => p.mem);
   const snap = server.latestSnapshot;
   const primaryNet = snap ? pickPrimaryNetwork(snap.os.network) : null;
 
@@ -115,8 +113,8 @@ export function ServerCard({ server }: { server: ServerStateView }) {
             </div>
           )}
 
-          <Sparkline label="cpu 30m" values={cpuValues} />
-          <Sparkline label="ram 30m" values={ramValues} />
+          <Sparkline label="cpu · 12h" field="cpu" points={history} />
+          <Sparkline label="ram · 12h" field="mem" points={history} />
 
           {snap?.docker && <DockerSection containers={snap.docker.containers} />}
           {snap?.pm2 && <Pm2Section processes={snap.pm2.processes} />}
