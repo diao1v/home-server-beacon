@@ -37,7 +37,7 @@ export interface DisplayPayload {
 // Interfaces we never want to count as "internet" traffic.
 const SKIP_IFACE_PREFIXES = ['lo', 'docker', 'br-', 'veth'];
 
-function primaryNetwork(network: NetworkInfo[]): { rx: number; tx: number } {
+export function primaryNetwork(network: NetworkInfo[]): { rx: number; tx: number } {
   const real = network.filter(
     (n) => !SKIP_IFACE_PREFIXES.some((p) => n.iface.startsWith(p)),
   );

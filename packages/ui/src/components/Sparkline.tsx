@@ -1,15 +1,32 @@
 import { useState } from 'react';
-import { fmtPercent } from '../lib/format';
+import { fmtPercent, fmtRate } from '../lib/format';
 import type { HistoryPoint } from '../store';
 
-type Field = 'cpu' | 'mem' | 'disk';
+export type SparklineField = 'cpu' | 'mem' | 'disk' | 'net';
 
 interface Bucket {
   v: number | null;
-  tEnd: number; // timestamp of the latest sample in the bucket
+  tEnd: number;
 }
 
 const TARGET_BARS = 48; // 12h ÷ 15 min = 48 buckets
+
+function extractValue(p: HistoryPoint, field: SparklineField): number | null {
+  if (field === 'net') {
+    if (p.netRx === null && p.netTx === null) return null;
+    return (p.netRx ?? 0) + (p.netTx ?? 0);
+  }
+  return p[field];
+}
+
+function isPercentField(f: SparklineField): boolean {
+  return f !== 'net';
+}
+
+function formatValue(v: number | null, field: SparklineField): string {
+  if (v === null) return '—';
+  return field === 'net' ? fmtRate(v) : fmtPercent(v);
+}
 
 export function Sparkline({
   label,
@@ -17,7 +34,7 @@ export function Sparkline({
   points,
 }: {
   label: string;
-  field: Field;
+  field: SparklineField;
   points: HistoryPoint[];
 }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -28,9 +45,18 @@ export function Sparkline({
       ? buckets[hoverIdx]
       : null;
 
-  // Header text flips between the static label and the hover readout.
+  // Bar fill is relative to: 100 for percent fields, max-of-window for net.
+  const scaleMax = isPercentField(field)
+    ? 100
+    : Math.max(
+        1,
+        ...buckets
+          .map((b) => b.v)
+          .filter((v): v is number => typeof v === 'number'),
+      );
+
   const headText = hovered
-    ? `${fmtTime(hovered.tEnd)} · ${fmtPercent(hovered.v)}`
+    ? `${fmtTime(hovered.tEnd)} · ${formatValue(hovered.v, field)}`
     : label;
 
   return (
@@ -59,15 +85,16 @@ export function Sparkline({
         >
           {buckets.map((b, i) => {
             if (b.v === null) return null;
-            const v = Math.max(0, Math.min(100, b.v));
+            const norm = Math.max(0, Math.min(1, b.v / scaleMax));
+            const h = norm * 100;
             const isHovered = i === hoverIdx;
             return (
               <rect
                 key={i}
                 x={i + 0.1}
-                y={100 - v}
+                y={100 - h}
                 width={0.8}
-                height={Math.max(0.5, v)}
+                height={Math.max(0.5, h)}
                 fill={isHovered ? '#aef0c8' : '#6ec4c4'}
               />
             );
@@ -78,7 +105,11 @@ export function Sparkline({
   );
 }
 
-function bucketize(points: HistoryPoint[], field: Field, target: number): Bucket[] {
+function bucketize(
+  points: HistoryPoint[],
+  field: SparklineField,
+  target: number,
+): Bucket[] {
   if (points.length === 0) return [];
   const step = Math.max(1, Math.ceil(points.length / target));
   const out: Bucket[] = [];
@@ -87,7 +118,7 @@ function bucketize(points: HistoryPoint[], field: Field, target: number): Bucket
     let sum = 0;
     let count = 0;
     for (const p of slice) {
-      const v = p[field];
+      const v = extractValue(p, field);
       if (typeof v === 'number' && Number.isFinite(v)) {
         sum += v;
         count += 1;

@@ -1,5 +1,6 @@
 import type { ServerStateView, WsStateMessage } from '@homelab/shared';
 import { create } from 'zustand';
+import { pickPrimaryNetwork } from './lib/format';
 
 export type WsStatus = 'connecting' | 'open' | 'closed' | 'error';
 
@@ -8,6 +9,8 @@ export interface HistoryPoint {
   cpu: number | null;
   mem: number | null;
   disk: number | null;
+  netRx: number | null;
+  netTx: number | null;
 }
 
 const HISTORY_CAP = 4500; // ~12.5h at a 10s poll interval (12h sparkline + headroom)
@@ -26,8 +29,7 @@ interface MonitorStore {
 function mergeHistory(existing: HistoryPoint[], incoming: HistoryPoint[]): HistoryPoint[] {
   const byTs = new Map<number, HistoryPoint>();
   for (const p of incoming) byTs.set(p.timestamp, p);
-  // Existing wins on ties — live points are the freshest.
-  for (const p of existing) byTs.set(p.timestamp, p);
+  for (const p of existing) byTs.set(p.timestamp, p); // existing wins
   return [...byTs.values()].sort((a, b) => a.timestamp - b.timestamp).slice(-HISTORY_CAP);
 }
 
@@ -43,11 +45,14 @@ export const useStore = create<MonitorStore>((set) => ({
       for (const s of msg.servers) {
         if (!s.latestSnapshot) continue;
         const snap = s.latestSnapshot;
+        const primaryNet = pickPrimaryNetwork(snap.os.network);
         const point: HistoryPoint = {
           timestamp: msg.timestamp,
           cpu: snap.os.cpuPercent,
           mem: snap.os.memory.usedPercent,
           disk: snap.os.disks[0]?.usedPercent ?? null,
+          netRx: primaryNet?.rxRate ?? null,
+          netTx: primaryNet?.txRate ?? null,
         };
         const prev = history[s.id] ?? [];
         const last = prev[prev.length - 1];
