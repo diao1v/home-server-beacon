@@ -8,17 +8,33 @@ function shortImage(image: string): string {
   return s;
 }
 
+// Primary: highest CPU first. Secondary: heaviest RAM first.
+// Pushes idle/static containers to the bottom so the busy ones lead.
+function byLoad(a: DockerContainer, b: DockerContainer): number {
+  const cpuDiff = (b.cpuPercent ?? 0) - (a.cpuPercent ?? 0);
+  if (cpuDiff !== 0) return cpuDiff;
+  return (b.memory.used ?? 0) - (a.memory.used ?? 0);
+}
+
 export function DockerSection({ containers }: { containers: DockerContainer[] }) {
   if (containers.length === 0) return null;
   const running = containers.filter((c) => c.status === 'running').length;
+  const sorted = [...containers].sort(byLoad);
+
   return (
     <div className="pt-2 mt-2 border-t border-dashed border-border">
-      <div className="text-muted text-[11px] mb-1 tracking-wide">
-        ▸ docker — {running} running
-        {containers.length > running && ` · ${containers.length - running} other`}
+      <div className="flex justify-between items-baseline mb-1">
+        <div className="text-muted text-[11px] tracking-wide">
+          ▸ docker — {running} running
+          {containers.length > running && ` · ${containers.length - running} other`}
+        </div>
+        <div className="grid grid-cols-[60px_60px] gap-2 text-[10px] text-muted uppercase tracking-wider">
+          <span className="text-right">cpu</span>
+          <span className="text-right">ram</span>
+        </div>
       </div>
       <ul className="space-y-px">
-        {containers.map((c) => {
+        {sorted.map((c) => {
           const isRunning = c.status === 'running';
           return (
             <li

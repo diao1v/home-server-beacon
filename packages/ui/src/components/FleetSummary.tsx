@@ -6,22 +6,15 @@ interface Highlight {
   value: number;
 }
 
-function findHottestCpu(servers: ServerStateView[]): Highlight | null {
+function findMaxBy<T>(
+  servers: ServerStateView[],
+  pick: (s: ServerStateView) => number | null | undefined,
+): Highlight | null {
   let best: Highlight | null = null;
   for (const s of servers) {
-    const cpu = s.latestSnapshot?.os.cpuPercent;
-    if (typeof cpu !== 'number' || Number.isNaN(cpu)) continue;
-    if (!best || cpu > best.value) best = { name: s.displayName, value: cpu };
-  }
-  return best;
-}
-
-function findFullestDisk(servers: ServerStateView[]): Highlight | null {
-  let best: Highlight | null = null;
-  for (const s of servers) {
-    const disk = s.latestSnapshot?.os.disks[0]?.usedPercent;
-    if (typeof disk !== 'number' || Number.isNaN(disk)) continue;
-    if (!best || disk > best.value) best = { name: s.displayName, value: disk };
+    const v = pick(s);
+    if (typeof v !== 'number' || Number.isNaN(v)) continue;
+    if (!best || v > best.value) best = { name: s.displayName, value: v };
   }
   return best;
 }
@@ -32,6 +25,22 @@ function colorFor(percent: number): string {
   return 'text-green';
 }
 
+function HighlightCell({ label, h }: { label: string; h: Highlight | null }) {
+  return (
+    <span>
+      {label}:{' '}
+      {h ? (
+        <>
+          <span className="text-text">{h.name}</span>{' '}
+          <span className={colorFor(h.value)}>{h.value.toFixed(1)}%</span>
+        </>
+      ) : (
+        <span className="text-muted">—</span>
+      )}
+    </span>
+  );
+}
+
 export function FleetSummary() {
   const servers = useStore((s) => s.servers);
   if (servers.length === 0) return null;
@@ -39,8 +48,9 @@ export function FleetSummary() {
   const counts = { online: 0, degraded: 0, offline: 0 };
   for (const s of servers) counts[s.status] += 1;
 
-  const hottest = findHottestCpu(servers);
-  const fullest = findFullestDisk(servers);
+  const hotCpu = findMaxBy(servers, (s) => s.latestSnapshot?.os.cpuPercent);
+  const hotRam = findMaxBy(servers, (s) => s.latestSnapshot?.os.memory.usedPercent);
+  const hotDsk = findMaxBy(servers, (s) => s.latestSnapshot?.os.disks[0]?.usedPercent);
 
   return (
     <section className="bg-panel border border-border px-3.5 py-2 mb-3 grid grid-cols-[64px_1fr] gap-x-3 gap-y-1 text-xs">
@@ -61,28 +71,9 @@ export function FleetSummary() {
 
       <div />
       <div className="flex gap-x-6 flex-wrap text-muted">
-        <span>
-          hot:{' '}
-          {hottest ? (
-            <>
-              <span className="text-text">{hottest.name}</span>{' '}
-              <span className={colorFor(hottest.value)}>{hottest.value.toFixed(1)}%</span>
-            </>
-          ) : (
-            <span className="text-muted">—</span>
-          )}
-        </span>
-        <span>
-          disk:{' '}
-          {fullest ? (
-            <>
-              <span className="text-text">{fullest.name}</span>{' '}
-              <span className={colorFor(fullest.value)}>{fullest.value.toFixed(1)}%</span>
-            </>
-          ) : (
-            <span className="text-muted">—</span>
-          )}
-        </span>
+        <HighlightCell label="cpu" h={hotCpu} />
+        <HighlightCell label="ram" h={hotRam} />
+        <HighlightCell label="disk" h={hotDsk} />
       </div>
     </section>
   );
