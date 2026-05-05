@@ -37,7 +37,7 @@ RUN pnpm --filter @homelab/shared build && \
     pnpm --filter @homelab/ui build
 
 # Self-contained deployment dir for the monitor.
-RUN pnpm --filter @homelab/monitor deploy --prod /deploy
+RUN pnpm --filter @homelab/monitor deploy --prod --legacy /deploy
 
 # ---- runtime ----
 FROM node:24-slim AS runtime

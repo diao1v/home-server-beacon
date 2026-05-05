@@ -29,7 +29,7 @@ RUN pnpm --filter @homelab/shared build && \
     pnpm --filter @homelab/agent build
 
 # Materialize a self-contained dir with only prod deps (workspace deps included).
-RUN pnpm --filter @homelab/agent deploy --prod /deploy
+RUN pnpm --filter @homelab/agent deploy --prod --legacy /deploy
 
 # ---- runtime ----
 FROM node:24-slim AS runtime
