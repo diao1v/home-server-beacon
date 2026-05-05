@@ -233,7 +233,61 @@ Drizzle generates SQL migrations into `packages/monitor/src/db/migrations/`. The
 
 ---
 
-## 9. Open Questions / Future Work
+## 9. Embedded / LED-Panel Clients
+
+A second consumer pattern is supported alongside the dashboard: small displays (e.g. an ESP32 driving a P2.5 LED matrix) that render at-a-glance status. These clients are too memory-constrained for the WS payload, so the monitor exposes a separate compact endpoint.
+
+### Endpoint
+
+```
+GET /api/display              -> 200 application/json + ETag
+GET /api/display              with If-None-Match → 304 (no body) when nothing changed
+GET /api/display?names=8      truncate displayName to 8 chars (small panels)
+```
+
+### Why polling, not WebSocket / SSE
+
+For embedded clients the trade-offs invert:
+
+- **WebSocket** libraries on ESP32-class chips burn RAM on framing/reconnect logic.
+- **SSE** is workable (long-lived HTTP, line-delimited) and a fine upgrade path if you need sub-second updates.
+- **Plain GET polling** is what we recommend. It's trivial to implement on any HTTP client, easy to debug with `curl`, and combined with content-based ETags it costs almost nothing on the wire when state hasn't changed.
+
+Recommended client cadence: 5 s. Send `If-None-Match: "<last-etag>"` to receive 304s when state is identical between polls — the panel skips JSON parse + redraw, which reduces flicker and power draw.
+
+### Schema (compact, integer-only)
+
+```jsonc
+{
+  "ts": 1735000000000,
+  "fleet":   { "online": 2, "degraded": 1, "offline": 0, "cpu": 45, "ram": 63, "rx": 5800000, "tx": 1200000 },
+  "servers": [
+    { "id": "srv-a", "name": "Server A", "s": "ok",   "cpu": 32, "ram": 67, "disk": 78, "rx": 4200000, "tx":  812000 },
+    { "id": "srv-b", "name": "Server B", "s": "warn", "cpu": 89, "ram": 71, "disk": 45, "rx": 1100000, "tx":  240000 },
+    { "id": "srv-c", "name": "Server C", "s": "ok",   "cpu": 45, "ram": 52, "disk": 61, "rx":  500000, "tx":  150000 }
+  ]
+}
+```
+
+- All percentages are **rounded integers** — LED panels don't need decimals.
+- `s` is a 3-letter status: `ok` / `warn` / `err` (3-byte enum, easy to switch on).
+- `rx` / `tx` are **bytes per second** of the primary WAN-facing interface, computed agent-side. Loopback/docker/bridge/veth interfaces are filtered out.
+- `name` is server-side truncated. Override with `?names=N`.
+- `id` is included so clients can keep stable per-server display slots across polls.
+
+Payload size for ~5 servers: ~500 bytes. ArduinoJson with a 2 KB doc is enough.
+
+### ETag
+
+Hash is content-based: derived from `fleet` + `servers` only, **not** `ts`. So a poll that finds the dashboard in identical state returns the same ETag despite the body's `ts` field being fresh — letting the embedded client safely skip work via `If-None-Match` / 304.
+
+### Auth
+
+Same model as the rest of the API: Tailscale-only network surface in v1. If you put the embedded client on a separate VLAN with no tailnet, add a query-param key (e.g. `?key=…`) and validate it server-side.
+
+---
+
+## 10. Open Questions / Future Work
 
 - **CI:** none in v1. Could add a tiny GitHub Actions job to typecheck + biome-check on PR — defer until the project has more than one contributor.
 - **Tests:** Vitest when collectors get nontrivial; not v1.

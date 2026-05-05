@@ -23,7 +23,9 @@ function parseStatus(state: string | undefined): DockerContainerStatus {
 }
 
 export async function collectDocker(): Promise<DockerMetrics> {
-  const list = await si.dockerContainers(true);
+  // Only running containers — stopped ones don't consume resources, so they're noise
+  // for a resource dashboard.
+  const list = await si.dockerContainers(false);
   if (list.length === 0) return { containers: [] };
 
   // dockerContainerStats accepts a comma-separated id list or '*' for all running.

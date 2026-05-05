@@ -14,6 +14,9 @@ export const NetworkInfo = z.object({
   iface: z.string(),
   rxBytes: z.number(),
   txBytes: z.number(),
+  // Bytes per second since the last sampler tick. 0 on cold start (no previous sample).
+  rxRate: z.number().nonnegative(),
+  txRate: z.number().nonnegative(),
 });
 export type NetworkInfo = z.infer<typeof NetworkInfo>;
 

@@ -5,6 +5,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { loadServersConfig } from './config.js';
+import { buildDisplayPayload, computeDisplayEtag } from './display.js';
 import { env } from './env.js';
 import { logger } from './logger.js';
 import { startPoller, stopPoller } from './poller.js';
@@ -41,6 +42,26 @@ app.get('/api/history/:serverId', (c) => {
   const since = Date.now() - minutes * 60 * 1000;
   const rows = getHistory(serverId, since);
   return c.json({ serverId, since, rows });
+});
+
+// Compact, integer-only payload for low-resource clients (LED panels, ESP32 etc.).
+// Supports If-None-Match → 304 so the embedded client can skip re-rendering on no-op polls.
+//   GET /api/display              default name length 16
+//   GET /api/display?names=8      truncate names to 8 chars (smaller panels)
+app.get('/api/display', (c) => {
+  const namesParam = Number.parseInt(c.req.query('names') ?? '', 10);
+  const nameLimit = Number.isFinite(namesParam) && namesParam > 0 ? namesParam : 16;
+
+  const payload = buildDisplayPayload(state.all(), nameLimit);
+  const etag = computeDisplayEtag(payload);
+
+  c.header('ETag', etag);
+  c.header('Cache-Control', 'no-cache');
+
+  if (c.req.header('If-None-Match') === etag) {
+    return c.body(null, 304);
+  }
+  return c.json(payload);
 });
 
 const { injectWebSocket } = setupWebSocket(app);
