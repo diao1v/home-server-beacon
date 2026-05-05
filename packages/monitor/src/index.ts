@@ -9,7 +9,7 @@ import { loadServersConfig } from './config.js';
 import { buildDisplayPayload, computeDisplayEtag } from './display.js';
 import { env } from './env.js';
 import { logger } from './logger.js';
-import { startPoller, stopPoller } from './poller.js';
+import { pollNow, startPoller, stopPoller } from './poller.js';
 import { state } from './state.js';
 import { getHistory, startCleanupJob, stopCleanupJob } from './store.js';
 import { setupWebSocket } from './ws.js';
@@ -36,6 +36,14 @@ app.get('/api/state', (c) =>
     servers: state.all(),
   }),
 );
+
+// Manual refresh — triggers an immediate poll cycle. WS broadcasts the updated
+// state to all clients on completion. Idempotent: concurrent requests share a
+// single in-flight cycle.
+app.post('/api/poll', async (c) => {
+  await pollNow();
+  return c.json({ ok: true });
+});
 
 app.get('/api/history/:serverId', (c) => {
   const serverId = c.req.param('serverId');

@@ -13,6 +13,8 @@ import { writeSnapshot } from './store.js';
 export const pollerEvents = new EventEmitter();
 
 let timer: NodeJS.Timeout | null = null;
+let activeServers: readonly ServerEntry[] = [];
+let inFlight: Promise<void> | null = null;
 
 async function pollOne(server: ServerEntry): Promise<void> {
   const ctrl = new AbortController();
@@ -36,18 +38,20 @@ async function pollOne(server: ServerEntry): Promise<void> {
   }
 }
 
+async function pollCycle(): Promise<void> {
+  const start = Date.now();
+  await Promise.allSettled(activeServers.map((s) => pollOne(s)));
+  logger.debug({ durationMs: Date.now() - start }, 'poll cycle complete');
+  pollerEvents.emit('cycle');
+}
+
 export function startPoller(servers: readonly ServerEntry[]): void {
   if (timer) return;
-  const tick = async () => {
-    const start = Date.now();
-    await Promise.allSettled(servers.map((s) => pollOne(s)));
-    logger.debug({ durationMs: Date.now() - start }, 'poll cycle complete');
-    pollerEvents.emit('cycle');
-  };
+  activeServers = servers;
   // Fire immediately so the dashboard has data ASAP.
-  tick().catch((err) => logger.error({ err }, 'initial poll cycle threw'));
+  pollCycle().catch((err) => logger.error({ err }, 'initial poll cycle threw'));
   timer = setInterval(() => {
-    tick().catch((err) => logger.error({ err }, 'poll cycle threw'));
+    pollCycle().catch((err) => logger.error({ err }, 'poll cycle threw'));
   }, env.POLL_INTERVAL_MS);
   timer.unref();
 }
@@ -57,4 +61,17 @@ export function stopPoller(): void {
     clearInterval(timer);
     timer = null;
   }
+}
+
+/**
+ * Trigger a poll cycle now and wait for it. If a cycle is already in flight,
+ * return that one — guarantees we don't fan out parallel cycles when the user
+ * mashes the refresh button.
+ */
+export function pollNow(): Promise<void> {
+  if (inFlight) return inFlight;
+  inFlight = pollCycle().finally(() => {
+    inFlight = null;
+  });
+  return inFlight;
 }
