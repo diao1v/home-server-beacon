@@ -1,4 +1,4 @@
-import { type BarColor, fmtPercent, makeBar } from '../lib/format';
+import { type BarColor, makeBar } from '../lib/format';
 
 const COLOR: Record<BarColor, string> = {
   green: 'text-green',
@@ -8,25 +8,23 @@ const COLOR: Record<BarColor, string> = {
 };
 
 interface Props {
+  /** Left-side label. Short ("CPU"/"RAM") or a path ("/", "/mnt/data"). */
   label: string;
-  value: number | null;
-  /** Number-to-string formatter for the right-hand value column. Default appends `%`. */
-  format?: (v: number | null) => string;
-  /**
-   * Bar fill basis. Defaults to `value` (treats it as 0-100%). Override when the
-   * raw value isn't a percentage — e.g. CPU temperature, where we want the bar to
-   * fill based on a temp-to-percent mapping.
-   */
-  barValue?: number | null;
+  /** 0-100 value used to fill the visual bar. Null renders as empty/muted. */
+  barValue: number | null;
+  /** Right-side text. Caller decides format ("32.4%", "2.2G/16G", "37°C"). */
+  valueText: string;
 }
 
-export function ResourceBar({ label, value, format = fmtPercent, barValue }: Props) {
-  const { text, color } = makeBar(barValue ?? value);
+export function ResourceBar({ label, barValue, valueText }: Props) {
+  const { text, color } = makeBar(barValue);
   return (
-    <div className="grid grid-cols-[36px_1fr_60px] gap-2 items-center text-xs my-1">
-      <span className="text-muted">{label}</span>
+    <div className="grid grid-cols-[80px_1fr_auto] gap-2 items-center text-xs my-1">
+      <span className="text-muted truncate" title={label}>
+        {label}
+      </span>
       <span className={COLOR[color]}>{text}</span>
-      <span className="text-right">{format(value)}</span>
+      <span className="text-right whitespace-nowrap">{valueText}</span>
     </div>
   );
 }

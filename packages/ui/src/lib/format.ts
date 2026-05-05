@@ -98,6 +98,10 @@ export function fmtTemp(t: number | null): string {
   return `${Math.round(t)}°C`;
 }
 
+export function fmtBytesPair(used: number, total: number): string {
+  return `${fmtBytes(used)}/${fmtBytes(total)}`;
+}
+
 export function fmtBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '—';
   const units = ['B', 'K', 'M', 'G', 'T'];

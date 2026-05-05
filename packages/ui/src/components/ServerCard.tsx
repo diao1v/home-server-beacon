@@ -1,5 +1,13 @@
 import type { ServerStateView } from '@homelab/shared';
-import { deriveStatus, fmtAgo, fmtRate, fmtTemp, pickPrimaryNetwork } from '../lib/format';
+import {
+  deriveStatus,
+  fmtAgo,
+  fmtBytesPair,
+  fmtPercent,
+  fmtRate,
+  fmtTemp,
+  pickPrimaryNetwork,
+} from '../lib/format';
 import { useStore } from '../store';
 import { DockerSection } from './DockerSection';
 import { Pm2Section } from './Pm2Section';
@@ -14,18 +22,21 @@ const BORDER_FOR_STATUS = {
   offline: 'border-red',
 } as const;
 
+// Map raw °C to bar fill: 30°C empty, 90°C full. Aligns existing
+// green/amber/red thresholds (60/85) to ~66°C amber, ~81°C red.
+function tempBarPercent(c: number): number {
+  return Math.max(0, Math.min(100, ((c - 30) / 60) * 100));
+}
+
 export function ServerCard({ server }: { server: ServerStateView }) {
   const history = useStore((s) => s.history[server.id]) ?? [];
   const cpuValues = history.map((p) => p.cpu);
   const ramValues = history.map((p) => p.mem);
   const snap = server.latestSnapshot;
-  const primaryDisk = snap?.os.disks[0];
   const primaryNet = snap ? pickPrimaryNetwork(snap.os.network) : null;
 
   const status = deriveStatus(server);
   const isWaiting = status === 'waiting';
-  // Stale = we have last-known data but the server is unreachable now. Dim the body
-  // so the user reads it as "frozen" rather than "current".
   const isStale = status === 'offline' && snap !== null;
 
   return (
@@ -51,22 +62,36 @@ export function ServerCard({ server }: { server: ServerStateView }) {
         </div>
       ) : (
         <div className={isStale ? 'opacity-50' : ''}>
-          <ResourceBar label="CPU" value={snap?.os.cpuPercent ?? null} />
-          <ResourceBar label="RAM" value={snap?.os.memory.usedPercent ?? null} />
-          <ResourceBar label="DSK" value={primaryDisk?.usedPercent ?? null} />
+          <ResourceBar
+            label="CPU"
+            barValue={snap?.os.cpuPercent ?? null}
+            valueText={fmtPercent(snap?.os.cpuPercent ?? null)}
+          />
+          <ResourceBar
+            label="RAM"
+            barValue={snap?.os.memory.usedPercent ?? null}
+            valueText={
+              snap ? fmtBytesPair(snap.os.memory.used, snap.os.memory.total) : '—'
+            }
+          />
           {typeof snap?.os.temperature === 'number' && (
             <ResourceBar
               label="TMP"
-              value={snap.os.temperature}
-              format={fmtTemp}
-              // Map raw °C to bar fill: 30°C empty, 90°C full. Aligns the existing
-              // green/amber/red thresholds (60/85) to ~66°C amber, ~81°C red.
-              barValue={Math.max(0, Math.min(100, ((snap.os.temperature - 30) / 60) * 100))}
+              barValue={tempBarPercent(snap.os.temperature)}
+              valueText={fmtTemp(snap.os.temperature)}
             />
           )}
+          {snap?.os.disks.map((d) => (
+            <ResourceBar
+              key={d.mount}
+              label={d.mount}
+              barValue={d.usedPercent}
+              valueText={fmtBytesPair(d.used, d.total)}
+            />
+          ))}
 
           {primaryNet && (
-            <div className="grid grid-cols-[36px_1fr_auto] gap-2 items-center text-xs my-1">
+            <div className="grid grid-cols-[80px_1fr_auto] gap-2 items-center text-xs my-1">
               <span className="text-muted">NET</span>
               <span>
                 <span className="text-cyan">↓</span>{' '}
