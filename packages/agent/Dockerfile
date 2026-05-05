@@ -30,6 +30,10 @@ RUN pnpm install --frozen-lockfile --prod
 FROM node:24-slim AS runtime
 WORKDIR /app/packages/agent
 
+# util-linux gives us `lsblk` for the OS collector's per-physical-disk view.
+RUN apt-get update && apt-get install -y --no-install-recommends util-linux \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy the entire pruned workspace. pnpm's symlink layout is preserved so
 # `import '@hono/node-server'` resolves correctly to the hoisted store.
 COPY --from=builder /app /app

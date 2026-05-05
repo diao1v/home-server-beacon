@@ -33,6 +33,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # /sys exposes thermal sensors so the temperature collector works.
       - /sys:/host/sys:ro
+      # Host root mounted read-only at /host so the OS collector can statfs the
+      # host's real filesystems (multiple disks, /data, /srv etc.). Without this
+      # the agent only sees the container's overlay filesystem.
+      - /:/host:ro
       # /proc is automatically the host's /proc thanks to pid: host.
 
     environment:

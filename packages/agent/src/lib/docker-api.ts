@@ -2,17 +2,16 @@ import { request } from 'node:http';
 
 /**
  * Minimal direct client for the Docker Engine API over the unix socket.
- *
- * Why not use `systeminformation.dockerContainerStats`?
- * - It strips `memory_stats.stats` (or the field names vary across cgroup
- *   versions and we can't reliably get the real anonymous-memory number).
- * - We need cgroup v1 vs v2 awareness to subtract page cache the way
- *   `docker stats` CLI does. The raw API has all the fields we need.
+ * Used instead of `systeminformation.dockerContainerStats` because that wrapper
+ * doesn't expose the cgroup memory_stats fields we need to compute "real" memory.
  */
 
 const SOCKET_PATH = '/var/run/docker.sock';
 const API_VERSION = 'v1.43';
-const TIMEOUT_MS = 5000;
+const DEFAULT_TIMEOUT_MS = 5000;
+// /containers/json?size=true forces the daemon to walk each writable layer to
+// compute SizeRw — slow on hosts with big writeable layers. Give it more room.
+const LIST_WITH_SIZE_TIMEOUT_MS = 20000;
 
 interface DockerContainerSummary {
   Id: string;
@@ -42,7 +41,7 @@ export interface DockerStats {
   };
 }
 
-function get<T>(path: string): Promise<T> {
+function get<T>(path: string, timeoutMs: number = DEFAULT_TIMEOUT_MS): Promise<T> {
   return new Promise((resolve, reject) => {
     let body = '';
     const req = request(
@@ -50,7 +49,7 @@ function get<T>(path: string): Promise<T> {
         socketPath: SOCKET_PATH,
         path: `/${API_VERSION}${path}`,
         method: 'GET',
-        timeout: TIMEOUT_MS,
+        timeout: timeoutMs,
       },
       (res) => {
         res.on('data', (chunk) => {
@@ -79,14 +78,19 @@ function get<T>(path: string): Promise<T> {
   });
 }
 
-export function listRunningContainers(): Promise<DockerContainerSummary[]> {
-  // size=true asks Docker to compute SizeRw + SizeRootFs per container. Adds a
-  // small amount of work on the daemon (it walks the writable layer) but is
-  // fine for homelab-scale fleets.
-  return get<DockerContainerSummary[]>('/containers/json?size=true');
+export async function listRunningContainers(): Promise<DockerContainerSummary[]> {
+  // Try with size first. If the daemon is too slow (heavy writable layers),
+  // fall back to a size-less list so the rest of the docker section still works.
+  try {
+    return await get<DockerContainerSummary[]>(
+      '/containers/json?size=true',
+      LIST_WITH_SIZE_TIMEOUT_MS,
+    );
+  } catch {
+    return get<DockerContainerSummary[]>('/containers/json');
+  }
 }
 
 export function containerStats(id: string): Promise<DockerStats> {
-  // stream=false → one-shot snapshot. precpu_stats is empty on first call.
   return get<DockerStats>(`/containers/${id}/stats?stream=false`);
 }

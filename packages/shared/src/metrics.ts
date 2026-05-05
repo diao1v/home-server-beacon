@@ -3,10 +3,18 @@ import { z } from 'zod';
 const NullableNumber = z.number().nullable();
 
 export const DiskInfo = z.object({
+  /** Device name ("sda", "nvme0n1") when reporting per-disk, else a mountpoint. */
   mount: z.string(),
   total: z.number(),
   used: z.number(),
   usedPercent: z.number(),
+  /**
+   * Mountpoints associated with this disk. Present when the entry represents a
+   * physical block device that may have multiple mounted partitions (e.g. LVM
+   * volume groups). Empty array = the disk has no mounted partitions. Absent
+   * = legacy/macOS view where the entry is itself a mountpoint.
+   */
+  mountpoints: z.array(z.string()).optional(),
 });
 export type DiskInfo = z.infer<typeof DiskInfo>;
 

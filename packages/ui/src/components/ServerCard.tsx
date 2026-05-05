@@ -82,12 +82,23 @@ export function ServerCard({ server }: { server: ServerStateView }) {
             />
           )}
           {snap?.os.disks.map((d) => (
-            <ResourceBar
-              key={d.mount}
-              label={d.mount}
-              barValue={d.usedPercent}
-              valueText={fmtBytesPair(d.used, d.total)}
-            />
+            <div key={d.mount}>
+              <ResourceBar
+                label={d.mount}
+                barValue={d.usedPercent}
+                valueText={fmtBytesPair(d.used, d.total)}
+              />
+              {d.mountpoints !== undefined && (
+                <div
+                  className="text-[10px] text-muted -mt-0.5 mb-1 pl-[88px] truncate"
+                  title={
+                    d.mountpoints.length === 0 ? 'unmounted' : d.mountpoints.join(' · ')
+                  }
+                >
+                  ↳ {d.mountpoints.length === 0 ? 'unmounted' : d.mountpoints.join(' · ')}
+                </div>
+              )}
+            </div>
           ))}
 
           {primaryNet && (
