@@ -125,16 +125,59 @@ async function readLsblk(): Promise<LsblkNode[]> {
   }
 }
 
-function flattenMountpoints(node: LsblkNode, out: string[]): void {
-  if (node.mountpoint && node.mountpoint !== '[SWAP]' && !node.mountpoint.startsWith('/proc')) {
-    out.push(node.mountpoint);
+/**
+ * Build a `device-name → mountpoint` map from the host's mount table.
+ * lsblk inside a Docker container reads /proc/self/mountinfo (the container's
+ * mounts), so partition.mountpoint is null for host mounts. With `pid: host`,
+ * /proc/1/mounts is the host's mount table — we merge it into lsblk's tree
+ * keyed by device name (last path component, plus the full /dev path).
+ */
+function readHostMountMap(): Map<string, string> {
+  const map = new Map<string, string>();
+  try {
+    const content = readFileSync('/proc/1/mounts', 'utf8');
+    for (const line of content.split('\n')) {
+      const parts = line.split(/\s+/);
+      const device = parts[0];
+      const rawMp = parts[1];
+      if (!device || !rawMp) continue;
+      const mp = rawMp.replace(/\\040/g, ' ');
+      if (!mp.startsWith('/')) continue;
+
+      // Index by full path AND by basename so we can match either form.
+      // (lsblk's "name" is the basename; /proc/mounts has the full /dev/... path.)
+      if (!map.has(device)) map.set(device, mp);
+      const slash = device.lastIndexOf('/');
+      const base = slash >= 0 ? device.slice(slash + 1) : device;
+      if (base && !map.has(base)) map.set(base, mp);
+    }
+  } catch {
+    // /proc/1/mounts not readable (no pid:host, or permission) — return empty,
+    // we'll just not have host mountpoints.
   }
-  for (const c of node.children ?? []) flattenMountpoints(c, out);
+  return map;
+}
+
+function flattenMountpoints(
+  node: LsblkNode,
+  hostMounts: Map<string, string>,
+  out: string[],
+): void {
+  // Prefer lsblk's mountpoint (works on native installs where lsblk and the
+  // agent share a mount namespace). Fall back to host mount map for the
+  // common Docker-with-pid:host case.
+  const mp = node.mountpoint ?? hostMounts.get(node.name);
+  if (mp && mp !== '[SWAP]' && !mp.startsWith('/proc')) {
+    out.push(mp);
+  }
+  for (const c of node.children ?? []) flattenMountpoints(c, hostMounts, out);
 }
 
 async function collectLsblkDisks(): Promise<DiskInfo[]> {
   const devices = await readLsblk();
   if (devices.length === 0) return [];
+
+  const hostMounts = readHostMountMap();
 
   const disks: DiskInfo[] = [];
   for (const dev of devices) {
@@ -142,7 +185,7 @@ async function collectLsblkDisks(): Promise<DiskInfo[]> {
     if (typeof dev.size !== 'number' || dev.size < MIN_DISK_BYTES) continue;
 
     const mountpoints: string[] = [];
-    flattenMountpoints(dev, mountpoints);
+    flattenMountpoints(dev, hostMounts, mountpoints);
 
     let used = 0;
     for (const mp of mountpoints) {
