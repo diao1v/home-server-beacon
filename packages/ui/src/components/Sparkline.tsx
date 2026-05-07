@@ -28,6 +28,10 @@ function formatValue(v: number | null, field: SparklineField): string {
   return field === 'net' ? fmtRate(v) : fmtPercent(v);
 }
 
+function fmtTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 export function Sparkline({
   label,
   field,
@@ -38,6 +42,9 @@ export function Sparkline({
   points: HistoryPoint[];
 }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  // Cursor x relative to the SVG, in CSS pixels. Drives tooltip horizontal position.
+  const [tooltipX, setTooltipX] = useState<number | null>(null);
+
   const buckets = bucketize(points, field, TARGET_BARS);
 
   const hovered =
@@ -45,62 +52,74 @@ export function Sparkline({
       ? buckets[hoverIdx]
       : null;
 
-  // Bar fill is relative to: 100 for percent fields, max-of-window for net.
   const scaleMax = isPercentField(field)
     ? 100
     : Math.max(
         1,
-        ...buckets
-          .map((b) => b.v)
-          .filter((v): v is number => typeof v === 'number'),
+        ...buckets.map((b) => b.v).filter((v): v is number => typeof v === 'number'),
       );
-
-  const headText = hovered
-    ? `${fmtTime(hovered.tEnd)} · ${formatValue(hovered.v, field)}`
-    : label;
 
   return (
     <div className="flex items-center gap-2 pt-2 mt-2 border-t border-dashed border-border h-7 text-[11px]">
-      <span
-        className={`shrink-0 truncate min-w-[88px] ${hovered ? 'text-text' : 'text-muted'}`}
-      >
-        {headText}
-      </span>
+      <span className="shrink-0 truncate min-w-[88px] text-muted">{label}</span>
 
-      {buckets.length === 0 ? (
-        <span className="flex-1 text-muted opacity-50">collecting…</span>
-      ) : (
-        <svg
-          viewBox={`0 0 ${buckets.length} 100`}
-          preserveAspectRatio="none"
-          className="block flex-1 h-6 cursor-crosshair"
-          onMouseMove={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            if (rect.width === 0) return;
-            const ratio = (e.clientX - rect.left) / rect.width;
-            const idx = Math.floor(ratio * buckets.length);
-            setHoverIdx(Math.max(0, Math.min(buckets.length - 1, idx)));
-          }}
-          onMouseLeave={() => setHoverIdx(null)}
-        >
-          {buckets.map((b, i) => {
-            if (b.v === null) return null;
-            const norm = Math.max(0, Math.min(1, b.v / scaleMax));
-            const h = norm * 100;
-            const isHovered = i === hoverIdx;
-            return (
-              <rect
-                key={i}
-                x={i + 0.1}
-                y={100 - h}
-                width={0.8}
-                height={Math.max(0.5, h)}
-                fill={isHovered ? '#aef0c8' : '#6ec4c4'}
-              />
-            );
-          })}
-        </svg>
-      )}
+      {/* Relative wrapper for the tooltip's absolute positioning. */}
+      <div className="relative flex-1 h-full">
+        {buckets.length === 0 ? (
+          <span className="text-muted opacity-50">collecting…</span>
+        ) : (
+          <svg
+            viewBox={`0 0 ${buckets.length} 100`}
+            preserveAspectRatio="none"
+            className="block w-full h-6 cursor-crosshair"
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              if (rect.width === 0) return;
+              const offsetX = e.clientX - rect.left;
+              const ratio = offsetX / rect.width;
+              const idx = Math.floor(ratio * buckets.length);
+              setHoverIdx(Math.max(0, Math.min(buckets.length - 1, idx)));
+              setTooltipX(offsetX);
+            }}
+            onMouseLeave={() => {
+              setHoverIdx(null);
+              setTooltipX(null);
+            }}
+          >
+            {buckets.map((b, i) => {
+              if (b.v === null) return null;
+              const norm = Math.max(0, Math.min(1, b.v / scaleMax));
+              const h = norm * 100;
+              const isHovered = i === hoverIdx;
+              return (
+                <rect
+                  key={i}
+                  x={i + 0.1}
+                  y={100 - h}
+                  width={0.8}
+                  height={Math.max(0.5, h)}
+                  fill={isHovered ? '#aef0c8' : '#6ec4c4'}
+                />
+              );
+            })}
+          </svg>
+        )}
+
+        {/* Tooltip floats above the cursor. Skipped for empty buckets so we
+            don't display "8:00 AM · —" type garbage when hovering padded space. */}
+        {hovered && hovered.v !== null && tooltipX !== null && (
+          <div
+            className="absolute pointer-events-none whitespace-nowrap text-[10px] text-text bg-panel border border-border px-1.5 py-0.5 z-10"
+            style={{
+              left: `${tooltipX}px`,
+              top: '-4px',
+              transform: 'translate(-50%, -100%)',
+            }}
+          >
+            {fmtTime(hovered.tEnd)} · {formatValue(hovered.v, field)}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -110,7 +129,9 @@ function bucketize(
   field: SparklineField,
   target: number,
 ): Bucket[] {
-  if (points.length === 0) return [];
+  if (points.length === 0) {
+    return Array.from({ length: target }, () => ({ v: null, tEnd: 0 }));
+  }
   const step = Math.max(1, Math.ceil(points.length / target));
   const out: Bucket[] = [];
   for (let i = 0; i < points.length; i += step) {
@@ -129,9 +150,8 @@ function bucketize(
       tEnd: slice[slice.length - 1]?.timestamp ?? Date.now(),
     });
   }
+  while (out.length < target) {
+    out.unshift({ v: null, tEnd: 0 });
+  }
   return out;
-}
-
-function fmtTime(ts: number): string {
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
