@@ -7,12 +7,15 @@
 #   url         http://<lan-ip>:<port> — the agent's bind address
 #   apiKey      bearer token; must match the agent's API_KEY env var
 #               (generate with: openssl rand -hex 24)
+#   ledName     OPTIONAL short label (≤ 8 chars) used by the LED panel API.
+#               When omitted, /api/display truncates `displayName` instead.
 
 servers:
   - id: server-a
     displayName: 'Server A'
     url: http://0.0.0.0:3005
     apiKey: replace-me-with-a-long-random-string
+    # ledName: SVRA          # uncomment if you have an LED panel
 
   - id: server-b
     displayName: 'Server B'

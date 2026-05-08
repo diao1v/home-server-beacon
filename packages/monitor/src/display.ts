@@ -81,7 +81,9 @@ export function buildDisplayPayload(
 
     out.push({
       id: s.id,
-      name: truncate(s.displayName, nameLimit),
+      // Prefer the explicit ledName when set in servers.yaml; otherwise fall
+      // back to truncating displayName so panels never see weird ellipses.
+      name: s.ledName ?? truncate(s.displayName, nameLimit),
       s: shortStatus(s.status),
       cpu: intOrZero(snap?.os.cpuPercent),
       ram: intOrZero(snap?.os.memory.usedPercent),

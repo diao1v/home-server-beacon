@@ -5,6 +5,11 @@ export const ServerEntry = z.object({
   displayName: z.string().min(1),
   url: z.string().url(),
   apiKey: z.string().min(16, 'apiKey must be at least 16 characters'),
+  /**
+   * Short label (≤ 8 chars) used by the LED panel API. When omitted, the
+   * /api/display endpoint truncates `displayName` instead. Optional.
+   */
+  ledName: z.string().min(1).max(8).optional(),
 });
 export type ServerEntry = z.infer<typeof ServerEntry>;
 

@@ -7,6 +7,7 @@ export type ServerStatus = 'online' | 'degraded' | 'offline';
 export interface ServerState {
   id: string;
   displayName: string;
+  ledName?: string;
   status: ServerStatus;
   lastSeen: number | null;
   consecutiveFailures: number;
@@ -17,6 +18,7 @@ export interface ServerState {
 export interface ServerInit {
   id: string;
   displayName: string;
+  ledName?: string;
 }
 
 export interface StateEvents {
@@ -35,6 +37,7 @@ class StateStore extends EventEmitter {
       this.servers.set(s.id, {
         id: s.id,
         displayName: s.displayName,
+        ledName: s.ledName,
         status: 'offline',
         lastSeen: null,
         consecutiveFailures: 0,

@@ -16,7 +16,13 @@ import { setupWebSocket } from './ws.js';
 
 // Boot order: config → state → db (transitive via store) → poller → http.
 const config = loadServersConfig();
-state.init(config.servers.map((s) => ({ id: s.id, displayName: s.displayName })));
+state.init(
+  config.servers.map((s) => ({
+    id: s.id,
+    displayName: s.displayName,
+    ledName: s.ledName,
+  })),
+);
 
 const app = new Hono();
 
