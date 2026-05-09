@@ -22,10 +22,10 @@ const BORDER_FOR_STATUS = {
   offline: 'border-red',
 } as const;
 
-// Map raw °C to bar fill: 30°C empty, 90°C full. Aligns existing
-// green/amber/red thresholds (60/85) to ~66°C amber, ~81°C red.
-function tempBarPercent(c: number): number {
-  return Math.max(0, Math.min(100, ((c - 30) / 60) * 100));
+function tempColor(c: number): string {
+  if (c >= 85) return 'text-red';
+  if (c >= 70) return 'text-amber';
+  return 'text-text';
 }
 
 export function ServerCard({ server }: { server: ServerStateView }) {
@@ -36,6 +36,7 @@ export function ServerCard({ server }: { server: ServerStateView }) {
   const status = deriveStatus(server);
   const isWaiting = status === 'waiting';
   const isStale = status === 'offline' && snap !== null;
+  const showFooter = status !== 'online';
 
   return (
     <div
@@ -72,13 +73,7 @@ export function ServerCard({ server }: { server: ServerStateView }) {
               snap ? fmtBytesPair(snap.os.memory.used, snap.os.memory.total) : '—'
             }
           />
-          {typeof snap?.os.temperature === 'number' && (
-            <ResourceBar
-              label="TMP"
-              barValue={tempBarPercent(snap.os.temperature)}
-              valueText={fmtTemp(snap.os.temperature)}
-            />
-          )}
+
           {snap?.os.disks.map((d) => (
             <div key={d.mount}>
               <ResourceBar
@@ -113,6 +108,30 @@ export function ServerCard({ server }: { server: ServerStateView }) {
             </div>
           )}
 
+          {snap?.os.io && (
+            <div className="grid grid-cols-[80px_1fr_auto] gap-2 items-center text-xs my-1">
+              <span className="text-muted">IO</span>
+              <span>
+                <span className="text-cyan">R</span>{' '}
+                <span className="text-text">{fmtRate(snap.os.io.readRate)}</span>
+                <span className="text-muted"> · </span>
+                <span className="text-cyan">W</span>{' '}
+                <span className="text-text">{fmtRate(snap.os.io.writeRate)}</span>
+              </span>
+              <span />
+            </div>
+          )}
+
+          {typeof snap?.os.temperature === 'number' && (
+            <div className="grid grid-cols-[80px_1fr_auto] gap-2 items-center text-xs my-1">
+              <span className="text-muted">TMP</span>
+              <span />
+              <span className={tempColor(snap.os.temperature)}>
+                {fmtTemp(snap.os.temperature)}
+              </span>
+            </div>
+          )}
+
           <Sparkline label="cpu · 12h" field="cpu" points={history} />
           <Sparkline label="ram · 12h" field="mem" points={history} />
           <Sparkline label="net · 12h" field="net" points={history} />
@@ -122,40 +141,37 @@ export function ServerCard({ server }: { server: ServerStateView }) {
         </div>
       )}
 
-      <div className="pt-2 mt-2 border-t border-dashed border-border flex justify-between text-muted text-[11px]">
-        {isWaiting ? (
-          <>
-            <span>no data yet</span>
-            <span>—</span>
-          </>
-        ) : status === 'offline' ? (
-          <>
-            <span className="text-red truncate">! {server.lastError ?? 'unreachable'}</span>
-            <span className="shrink-0 ml-2">
-              last seen <span className="text-text">{fmtAgo(server.lastSeen)}</span>
-            </span>
-          </>
-        ) : status === 'degraded' ? (
-          <>
-            <span className="text-amber">
-              ! {server.consecutiveFailures}/3 failures
-              {server.lastError && (
-                <span className="text-muted"> — {server.lastError}</span>
-              )}
-            </span>
-            <span className="shrink-0 ml-2">
-              <span className="text-text">{fmtAgo(server.lastSeen)}</span>
-            </span>
-          </>
-        ) : (
-          <>
-            <span>
-              last seen <span className="text-text">{fmtAgo(server.lastSeen)}</span>
-            </span>
-            <span>v{snap?.meta.version ?? '—'}</span>
-          </>
-        )}
-      </div>
+      {/* Footer is suppressed for the online state — the card body has all the info. */}
+      {showFooter && (
+        <div className="pt-2 mt-2 border-t border-dashed border-border flex justify-between text-muted text-[11px]">
+          {isWaiting ? (
+            <>
+              <span>no data yet</span>
+              <span>—</span>
+            </>
+          ) : status === 'offline' ? (
+            <>
+              <span className="text-red truncate">! {server.lastError ?? 'unreachable'}</span>
+              <span className="shrink-0 ml-2">
+                last seen <span className="text-text">{fmtAgo(server.lastSeen)}</span>
+              </span>
+            </>
+          ) : (
+            // degraded
+            <>
+              <span className="text-amber">
+                ! {server.consecutiveFailures}/3 failures
+                {server.lastError && (
+                  <span className="text-muted"> — {server.lastError}</span>
+                )}
+              </span>
+              <span className="shrink-0 ml-2">
+                <span className="text-text">{fmtAgo(server.lastSeen)}</span>
+              </span>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

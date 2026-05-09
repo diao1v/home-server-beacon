@@ -43,6 +43,11 @@ export const OsMetrics = z.object({
   uptime: z.number(),
   disks: z.array(DiskInfo),
   network: z.array(NetworkInfo),
+  // Aggregate disk I/O across all filesystems on the host. Bytes per second.
+  io: z.object({
+    readRate: z.number().nonnegative(),
+    writeRate: z.number().nonnegative(),
+  }),
 });
 export type OsMetrics = z.infer<typeof OsMetrics>;
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchJson } from '../lib/api';
 import { fmtAgo } from '../lib/format';
 import { useStore } from '../store';
@@ -14,6 +14,16 @@ export function Header() {
   const wsStatus = useStore((s) => s.wsStatus);
   const lastUpdate = useStore((s) => s.lastUpdate);
   const [polling, setPolling] = useState(false);
+
+  // Tick once a second so `fmtAgo(lastUpdate)` re-evaluates against a fresh
+  // Date.now(). Without this the component only re-renders on WS pushes
+  // (every ~10s), which means "last poll" jumps from "0s" → "0s" → "0s"
+  // and never actually counts up.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const handleRefresh = async () => {
     if (polling) return;

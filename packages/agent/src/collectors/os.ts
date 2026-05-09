@@ -291,7 +291,7 @@ function collectFallbackDisks(fs: si.Systeminformation.FsSizeData[]): DiskInfo[]
 // ────────────────────────────────────────────────────────────────────────────
 
 export async function collectOs(): Promise<OsMetrics> {
-  const [load, mem, fs, net, time, temp, macosDisks] = await Promise.all([
+  const [load, mem, fs, net, time, temp, macosDisks, ioStats] = await Promise.all([
     si.currentLoad(),
     si.mem(),
     si.fsSize(),
@@ -299,7 +299,16 @@ export async function collectOs(): Promise<OsMetrics> {
     si.time(),
     si.cpuTemperature(),
     IS_MACOS ? getMacosStorageDisks() : Promise.resolve(null),
+    // fsStats can throw on systems without IO accounting (rare); fail-soft to zeros.
+    si.fsStats().catch(() => null),
   ]);
+
+  const safeRate = (v: number | null | undefined): number =>
+    typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.round(v) : 0;
+  const io = {
+    readRate: safeRate(ioStats?.rx_sec),
+    writeRate: safeRate(ioStats?.wx_sec),
+  };
 
   const cpuPercent = Number.isFinite(load.currentLoad) ? load.currentLoad : null;
   const temperature =
@@ -347,5 +356,6 @@ export async function collectOs(): Promise<OsMetrics> {
       rxRate: Number.isFinite(n.rx_sec) && n.rx_sec >= 0 ? Math.round(n.rx_sec) : 0,
       txRate: Number.isFinite(n.tx_sec) && n.tx_sec >= 0 ? Math.round(n.tx_sec) : 0,
     })),
+    io,
   };
 }
