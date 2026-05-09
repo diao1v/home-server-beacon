@@ -135,6 +135,7 @@ export function ServerCard({ server }: { server: ServerStateView }) {
           <Sparkline label="cpu · 12h" field="cpu" points={history} />
           <Sparkline label="ram · 12h" field="mem" points={history} />
           <Sparkline label="net · 12h" field="net" points={history} />
+          <Sparkline label="io · 12h" field="io" points={history} />
 
           {snap?.docker && <DockerSection containers={snap.docker.containers} />}
           {snap?.pm2 && <Pm2Section processes={snap.pm2.processes} />}

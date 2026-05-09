@@ -41,6 +41,12 @@ if (!colNames.has('net_rx_rate')) {
 if (!colNames.has('net_tx_rate')) {
   sqlite.exec("ALTER TABLE snapshots ADD COLUMN net_tx_rate INTEGER");
 }
+if (!colNames.has('io_read_rate')) {
+  sqlite.exec("ALTER TABLE snapshots ADD COLUMN io_read_rate INTEGER");
+}
+if (!colNames.has('io_write_rate')) {
+  sqlite.exec("ALTER TABLE snapshots ADD COLUMN io_write_rate INTEGER");
+}
 
 logger.info({ path: dbPath }, 'sqlite ready');
 

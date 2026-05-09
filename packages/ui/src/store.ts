@@ -11,6 +11,8 @@ export interface HistoryPoint {
   disk: number | null;
   netRx: number | null;
   netTx: number | null;
+  ioRead: number | null;
+  ioWrite: number | null;
 }
 
 const HISTORY_CAP = 4500; // ~12.5h at a 10s poll interval (12h sparkline + headroom)
@@ -53,6 +55,8 @@ export const useStore = create<MonitorStore>((set) => ({
           disk: snap.os.disks[0]?.usedPercent ?? null,
           netRx: primaryNet?.rxRate ?? null,
           netTx: primaryNet?.txRate ?? null,
+          ioRead: snap.os.io?.readRate ?? null,
+          ioWrite: snap.os.io?.writeRate ?? null,
         };
         const prev = history[s.id] ?? [];
         const last = prev[prev.length - 1];

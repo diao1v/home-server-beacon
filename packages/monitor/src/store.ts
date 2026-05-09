@@ -7,19 +7,21 @@ import { logger } from './logger.js';
 const insertStmt = sqlite.prepare(
   `INSERT INTO snapshots
      (server_id, timestamp, cpu_percent, mem_percent, disk_percent,
-      net_rx_rate, net_tx_rate, raw_json)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      net_rx_rate, net_tx_rate, io_read_rate, io_write_rate, raw_json)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 const cleanupStmt = sqlite.prepare('DELETE FROM snapshots WHERE timestamp < ?');
 
 const historyStmt = sqlite.prepare(
   `SELECT timestamp,
-          cpu_percent  AS cpu,
-          mem_percent  AS mem,
-          disk_percent AS disk,
-          net_rx_rate  AS netRx,
-          net_tx_rate  AS netTx
+          cpu_percent   AS cpu,
+          mem_percent   AS mem,
+          disk_percent  AS disk,
+          net_rx_rate   AS netRx,
+          net_tx_rate   AS netTx,
+          io_read_rate  AS ioRead,
+          io_write_rate AS ioWrite
    FROM snapshots
    WHERE server_id = ? AND timestamp >= ?
    ORDER BY timestamp ASC`,
@@ -32,6 +34,8 @@ export interface HistoryRow {
   disk: number | null;
   netRx: number | null;
   netTx: number | null;
+  ioRead: number | null;
+  ioWrite: number | null;
 }
 
 export function writeSnapshot(serverId: string, snap: MetricsSnapshot): void {
@@ -45,6 +49,8 @@ export function writeSnapshot(serverId: string, snap: MetricsSnapshot): void {
     primaryDisk?.usedPercent ?? null,
     net.rx,
     net.tx,
+    snap.os.io?.readRate ?? null,
+    snap.os.io?.writeRate ?? null,
     JSON.stringify(snap),
   );
 }

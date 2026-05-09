@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { fmtPercent, fmtRate } from '../lib/format';
 import type { HistoryPoint } from '../store';
 
-export type SparklineField = 'cpu' | 'mem' | 'disk' | 'net';
+export type SparklineField = 'cpu' | 'mem' | 'disk' | 'net' | 'io';
 
 interface Bucket {
   v: number | null;
@@ -16,16 +16,20 @@ function extractValue(p: HistoryPoint, field: SparklineField): number | null {
     if (p.netRx === null && p.netTx === null) return null;
     return (p.netRx ?? 0) + (p.netTx ?? 0);
   }
+  if (field === 'io') {
+    if (p.ioRead === null && p.ioWrite === null) return null;
+    return (p.ioRead ?? 0) + (p.ioWrite ?? 0);
+  }
   return p[field];
 }
 
 function isPercentField(f: SparklineField): boolean {
-  return f !== 'net';
+  return f !== 'net' && f !== 'io';
 }
 
 function formatValue(v: number | null, field: SparklineField): string {
   if (v === null) return '—';
-  return field === 'net' ? fmtRate(v) : fmtPercent(v);
+  return isPercentField(field) ? fmtPercent(v) : fmtRate(v);
 }
 
 function fmtTime(ts: number): string {
