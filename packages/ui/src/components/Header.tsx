@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import pkg from '../../package.json';
 import { fetchJson } from '../lib/api';
 import { fmtAgo } from '../lib/format';
 import { useStore } from '../store';
@@ -40,7 +41,7 @@ export function Header() {
   return (
     <header className="border-b border-border pb-2 mb-4 flex flex-wrap justify-between items-baseline gap-x-3 gap-y-1 text-muted text-xs">
       <div className="text-text tracking-wider">
-        <span className="text-green">$</span> homelab-monitor v0.0.1
+        <span className="text-green">$</span> home server beacon {pkg.version}
       </div>
       <div className="flex items-baseline gap-3 flex-wrap">
         <span>

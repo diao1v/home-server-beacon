@@ -44,10 +44,14 @@ export const OsMetrics = z.object({
   disks: z.array(DiskInfo),
   network: z.array(NetworkInfo),
   // Aggregate disk I/O across all filesystems on the host. Bytes per second.
-  io: z.object({
-    readRate: z.number().nonnegative(),
-    writeRate: z.number().nonnegative(),
-  }),
+  // Optional so older agents (which don't yet emit this field) keep validating;
+  // newer agents always include it.
+  io: z
+    .object({
+      readRate: z.number().nonnegative(),
+      writeRate: z.number().nonnegative(),
+    })
+    .optional(),
 });
 export type OsMetrics = z.infer<typeof OsMetrics>;
 
