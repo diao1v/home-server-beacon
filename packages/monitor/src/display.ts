@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { NetworkInfo } from '@homelab/shared';
+import type { DiskInfo, NetworkInfo } from '@homelab/shared';
 import type { ServerState } from './state.js';
 
 /**
@@ -53,6 +53,24 @@ function shortStatus(status: ServerState['status']): DisplayServer['s'] {
   return 'err';
 }
 
+/**
+ * Combined disk usage across every disk on the host: sum(used) / sum(total).
+ * For multi-disk hosts this answers "how full is this server's storage overall"
+ * rather than "what's the largest disk's percentage." Returns null when there
+ * are no disks reported (the API caller will then see 0).
+ */
+function combinedDiskPercent(disks: DiskInfo[]): number | null {
+  if (disks.length === 0) return null;
+  let total = 0;
+  let used = 0;
+  for (const d of disks) {
+    total += d.total;
+    used += d.used;
+  }
+  if (total <= 0) return null;
+  return (used / total) * 100;
+}
+
 function intOrZero(v: number | null | undefined): number {
   return typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : 0;
 }
@@ -87,7 +105,7 @@ export function buildDisplayPayload(
       s: shortStatus(s.status),
       cpu: intOrZero(snap?.os.cpuPercent),
       ram: intOrZero(snap?.os.memory.usedPercent),
-      disk: intOrZero(snap?.os.disks[0]?.usedPercent),
+      disk: intOrZero(snap ? combinedDiskPercent(snap.os.disks) : null),
       rx: net.rx,
       tx: net.tx,
     });
